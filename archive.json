@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-05-14T18:15:40.875538+00:00",
+  "timestamp": "2021-05-26T19:44:41.458208+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10351,7 +10351,7 @@
       "labels": [],
       "body": "I suspect this is editorial, but it would be helpful to clarify exactly how the client computes its transcript when it generates its keys, based on the permutations of who gets what. IIUC:\r\n\r\n* If the server authenticates the inner SNI, the client must construct the client hello as seen by the back-end server, including any OuterExtensions compression, and uses it in the transcript.\r\n* If the server authenticates the public SNI, the client uses the entire client hello in the hash as-is, including the (unreadable) encrypted_client_hello extension.\r\n\r\nA server that combines the client-facing and back-end functions also has to duplicate this logic, since it can see everything but maybe shouldn't use it all, and has to go through the motions of formally constructing a proper client hello to a back-end server.\r\n\r\nI found this all quite subtle to work out and asked some questions of one of the authors to fully understand. I'll leave it to the editors as to whether the draft needs some text to make this clearer.\r\n\r\n[Aside: is it computationally feasible to add some sort of \"checksum\" that would neutralize the difference in the hashes? That would make this a little less tricky, IMO]",
       "createdAt": "2021-05-06T20:27:01Z",
-      "updatedAt": "2021-05-06T20:31:10Z",
+      "updatedAt": "2021-05-24T19:52:05Z",
       "closedAt": null,
       "comments": [
         {
@@ -10360,6 +10360,48 @@
           "body": "\n\nOn 06/05/2021 21:27, martinduke wrote:\n> I suspect this is editorial, but it would be helpful to clarify\n> exactly how the client computes its transcript when it generates its\n> keys, based on the permutations of who gets what\n+1 and test vectors would be good too\n",
           "createdAt": "2021-05-06T20:31:10Z",
           "updatedAt": "2021-05-06T20:31:10Z"
+        },
+        {
+          "author": "sayrer",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Yes, agree. This is really tricky: \"The client presumes acceptance if the last 8 bytes of ServerHello.random are equal to the first 8 bytes of accept_confirmation as defined in Section 7.2. Otherwise, it presumes rejection.\"",
+          "createdAt": "2021-05-20T00:17:38Z",
+          "updatedAt": "2021-05-20T00:17:38Z"
+        },
+        {
+          "author": "sayrer",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Here's what I ended up writing after I solved this:\r\n\r\n\"This issue is that the ECH transcript needs to be calculated from an unsent inner ClientHello message, which differs in a few ways from the EncodedClientHelloInner used in HPKE. Upon ECH acceptance, the transcript from the ClientHelloOuter is discarded, then substituted with one calculated from the unsent inner ClientHello message, and the client random is changed to the inner random value. After that, the ServerHello message is added to the transcript as normal. The transcript used for ECH acceptance is separate from the normal transcript.\"",
+          "createdAt": "2021-05-22T19:34:06Z",
+          "updatedAt": "2021-05-22T19:34:06Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I think the way to think about this is that there are two possible handshakes here, joined at the first message. Either we handshake with ClientHelloOuter, or we handshake with ClientHelloInner. Whichever, we handshake with, we follow the usual RFC8446 rules, including incorporating the chosen ClientHello into the transcript. Indeed on the server, the protocol even supports a client-facing vs. backend server split where the connection is actually rewritten to use ClientHelloInner.\r\n\r\nEncodedClientHelloInner, per the name, is just an encoding. We don't want to send two copies of things like key shares. The actual ClientHello being conveyed is still ClientHelloInner. (This is important since the transcript needs to reflect all inputs to TLS parameter negotiation.)\r\n\r\nBut, yes, on the client this gets a little fun because the client needs to offer these two somewhat related ClientHellos, learn which was to used a message later, and then complete the handshake accordingly.",
+          "createdAt": "2021-05-22T21:34:56Z",
+          "updatedAt": "2021-05-22T21:35:21Z"
+        },
+        {
+          "author": "sayrer",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> But, yes, on the client this gets a little fun because the client needs to offer these two somewhat related ClientHellos, learn which was to used a message later, and then complete the handshake accordingly.\r\n\r\nPerhaps there's missing text in \"6.1.4.1. Accepted ECH\", where client transcript handling could be addressed.\r\n\r\nMy feedback is that it was possible to construct a conformant EncodedClientHelloInner and enclosing ClientHelloOuter from reading the spec as a non-author, but I had to test with other implementations to discover what I was supposed to do with the ClientHelloInner. If you get this part wrong, then you just hit a decryption error after ServerHello. \r\n\r\nI did understand that I had to update the transcript, but I initially thought I should do it with an EncodedClientHelloInner added to the ClientHelloOuter transcript. Once I discovered that was not the case, I had to construct a ClientHelloInner that still had the fields that are compressed in EncodedClientHelloInner. That doesn't cross anything in the text, but it wasn't obvious to me.",
+          "createdAt": "2021-05-22T21:56:01Z",
+          "updatedAt": "2021-05-22T22:13:47Z"
+        },
+        {
+          "author": "martinduke",
+          "authorAssociation": "NONE",
+          "body": "I think we're in agreement here, but is the encoding of ClientHelloInner\ndeterministic enough that the client-facing server can't possibly express\nthe expanded ClientHelloInner in a way that breaks the transcript?\n\nOn Sat, May 22, 2021 at 2:35 PM David Benjamin ***@***.***>\nwrote:\n\n> I think the way to think about this is that there are two possible\n> handshakes here, joined at the hip. Either we handshake with\n> ClientHelloOuter, or we handshake with ClientHelloInner. Whichever, we\n> handshake with, we follow the usual RFC8446 rules, including incorporating\n> the chosen ClientHello into the transcript. Indeed on the server, the\n> protocol even supports a client-facing vs. backend server split where the\n> connection is actually rewritten to use ClientHelloInner.\n>\n> EncodedClientHelloInner, per the name, is just an encoding. We don't want\n> to send two copies of things like key shares. The actual ClientHello being\n> conveyed is still ClientHelloInner. (This is important since the transcript\n> needs to reflect all inputs to TLS parameter negotiation.)\n>\n> But, yes, on the client this gets a little fun because the client needs to\n> offer these two somewhat related ClientHellos, learn which was to used a\n> message later, and then complete the handshake accordingly.\n>\n> \u2014\n> You are receiving this because you authored the thread.\n> Reply to this email directly, view it on GitHub\n> <https://github.com/tlswg/draft-ietf-tls-esni/issues/429#issuecomment-846466291>,\n> or unsubscribe\n> <https://github.com/notifications/unsubscribe-auth/AF2EYEKN74QFCPWQXGFLL2LTPAPQZANCNFSM44H3KOZQ>\n> .\n>\n",
+          "createdAt": "2021-05-24T19:45:06Z",
+          "updatedAt": "2021-05-24T19:45:06Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "It's decode, not encode, that needs to be deterministic. And yes, it is deterministic.",
+          "createdAt": "2021-05-24T19:52:05Z",
+          "updatedAt": "2021-05-24T19:52:05Z"
         }
       ]
     },
@@ -10422,9 +10464,17 @@
       "labels": [],
       "body": "Filing this as a topic for discussion. I think \"we don't like these padding strategies\" or \"that's not too complicated\" are perfectly plausible answers.\r\n\r\nSo, we need to pad the ECH payload to avoid revealing information via length. It seems to me there are two plausible strategies for padding, and you could do one or both of them. (You could do both by applying the first, then applying the second.)\r\n\r\n_NB: I don't know what the overall consensus is on padding strategies. My assumption has been that there isn't one and we're building flexibility into protocols so we can figure it out. The below is a summary of my current thinking, but there are probably lots of well-established ideas I don't know._ \r\n\r\n**Pad particular fields you are trying to hide**\r\nThere may be a particular field in your message with a length distribution you would like to hide. Perhaps some anonymity set has server name lengths up to 96 bytes. So you arrange for the client to know this, and the client adds 96 - len(server_name) extra bytes to the ClientHello somewhere. This is easy to reason about in isolation, but only considers individual fields. Information about other fields still leaks.\r\n\r\n**Generically reduce the range of possible lengths**\r\nYou may also just try to generically reduce the range of the function. Maybe you round to a multiple of 32, or round to the next power of some R > 1. This may still leak information: padding a multiple of 32 still distinguishes (big server name, big ALPN list) and (small server name, small ALPN list) when the variance is more than 32 bytes. But it pretty uniformly reduces the information leaked in general, which can help increase anonymity sets. For example, an HTTP client will always sends an ALPN of {h2, http/1.1}, but a tiny amount of overall padding can help combine HTTP ClientHellos with a non-HTTP client that might have a slightly different ALPN set. It can also mitigate mistakes. For instance, TLS tickets often embed the server name. If the server forgets to pad that when minting the ticket, the first strategy alone will leak this.\r\n\r\nThe recommended padding scheme currently only does the first kind. We add padding for server_name and largely ignore the other fields. Suppose some client wanted to additionally use the second strategy. The order of operations here is fussy and interleaves bits of ClientHelloInner and EncodedClientHelloInner:\r\n\r\n* EncodedClientHelloInner has a PSK binder\r\n* ...which depends on the non-PSK extensions of ClientHelloInner\r\n* ...which includes the padding extension\r\n* ...which depends on the length of the non-padding extensions of EncodedClientHelloInner\r\n* ...which depends on the length of the PSK binder, the non-PSK non-padding extensions of ClientHelloInner, which of them will be compressed\r\n\r\nThis is not actually a circular dependency. But it's a place the ClientHelloInner and EncodedClientHelloInner are awkward linked together. Probably the way to do it is to maintain a count of how much smaller EncodedClientHelloInner will be and subtract that from the ClientHelloInner as you construct and pad it.\r\n\r\n*If* we think this is a problem, the fix is pretty straightforward: add padding to EncodedClientHelloInner itself. Something like:\r\n\r\n```\r\nstruct {\r\n  ClientHello client_hello;\r\n  opaque padding<0..2^16-1>;\r\n} EncodedClientHelloInner;\r\n```\r\n\r\nNow the ClientHelloInner no longer depends on the length of the EncodedClientHelloInner. Is this worth doing?",
       "createdAt": "2021-05-13T22:31:28Z",
-      "updatedAt": "2021-05-13T22:31:28Z",
+      "updatedAt": "2021-05-20T17:32:10Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Forgot to mention: Another reason to round the overall payload is that GREASE will likely be much more effective if the space of common lengths is dense.",
+          "createdAt": "2021-05-20T17:32:10Z",
+          "updatedAt": "2021-05-20T17:32:10Z"
+        }
+      ]
     },
     {
       "number": 434,
@@ -40293,13 +40343,13 @@
       "labels": [],
       "body": "Currently we distinguish between CHI and CHO by sending \"ech_is_inner\"\r\nin CHI and \"encrypted_client_hello\" in CHO. A future change will signal\r\nECH acceptance in HRR using the \"encrypted_client_hello\" codepoint. This\r\nwould violate 8446's rule that disallows unsolicited extensions. In\r\npreparation for this change, this commit removes the \"ech_is_inner\"\r\nextension and adds a byte to the payload of \"encrypted_client_hello\"\r\nthat signals to the server whether the message is CHI or CHO.",
       "createdAt": "2021-04-15T22:37:44Z",
-      "updatedAt": "2021-05-14T18:09:47Z",
+      "updatedAt": "2021-05-21T15:59:08Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "9e93dd483fb86ff65fb8f27b6f768ef6898e774a",
+      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "hrr-inner-2",
-      "headRefOid": "2ef1abaa4dc9e9ac6a004cd94d53698410986f1c",
+      "headRefOid": "a8a7c0a77b8d0090d3d14f529043fe21032acdcf",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -40527,6 +40577,46 @@
               "updatedAt": "2021-05-14T18:08:48Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjY0OTY1NDU1",
+          "commit": {
+            "abbreviatedOid": "83ac6eb"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-20T22:52:21Z",
+          "updatedAt": "2021-05-20T22:52:21Z",
+          "comments": [
+            {
+              "originalPosition": 47,
+              "body": "(This comment should be a few stanzas down, but GitHub is silly.)\r\n\r\nSomething I realized working through an implementation. I think we also need to adjust this line below:\r\n\r\n>  When the client offers the \"encrypted_client_hello\" extension, the server MAY include an \"encrypted_client_hello\" extension in its EncryptedExtensions message with the following payload:\r\n\r\nIf we handshake a ClientHelloInner, the server is not supposed to send retry configs. The encrypted_client_hello / ech_is_inner version captured this implicitly with the unsolicited extensions rule: the inner ClientHello doesn't have encrypted_client_hello, only ech_is_inner.\r\n\r\nIn this form, we instead make HRR happier, but I think we need to here, or elsewhere, say the server can only send this when the client offers encrypted_client_hello with type outer. Sending this with type inner should be an unsupported_extension alert.",
+              "createdAt": "2021-05-20T22:52:21Z",
+              "updatedAt": "2021-05-20T22:52:31Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjY1NjI1NTIw",
+          "commit": {
+            "abbreviatedOid": "a8a7c0a"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-21T15:59:08Z",
+          "updatedAt": "2021-05-21T15:59:08Z",
+          "comments": [
+            {
+              "originalPosition": 47,
+              "body": "Done.",
+              "createdAt": "2021-05-21T15:59:08Z",
+              "updatedAt": "2021-05-21T15:59:08Z"
+            }
+          ]
         }
       ]
     },
@@ -40542,13 +40632,13 @@
       "labels": [],
       "body": "Based on #422 (review that first!).\r\n\r\nIf an HRR is sent in response to CH, the client doesn't know whether ECH\r\nwas accepted. As a result, it doesn't know whether it's CHI or CHO that\r\nneeds to be updated. The spec attempts to address this ambiguity by\r\nrequiring that all HRR-sensitive parameters are the same in CHI and CHO.\r\nThis criterion is currently underspecified, and it's not clear how to\r\nmake sure that future extensions don't violate it. (See issue #374.)\r\n\r\nThis change solves this ambiguity by adding an explicit signal of ECH\r\nacceptance to HRR. This violates \"don't stick out\" whenever an HRR is\r\ninevitable for a particular client and server configuration. However,\r\nthis change is designed to prevent an active attacker from\r\ndistinguishing real ECH from GREASE ECH by triggering HRR.\r\n\r\nCloses #374 by providing an alternative to PR #407.\r\nCloses #373.\r\nCloses #358.\r\n\r\n",
       "createdAt": "2021-04-15T23:51:53Z",
-      "updatedAt": "2021-05-14T18:13:18Z",
+      "updatedAt": "2021-05-14T18:18:33Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "9e93dd483fb86ff65fb8f27b6f768ef6898e774a",
+      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "hrr-inner-2-main",
-      "headRefOid": "c822e2b93121c03db33b26567cc33f543ad7ceed",
+      "headRefOid": "c4f84a7331e1d6c20edc78c10a1ee25093ff953c",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -41319,6 +41409,32 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 436,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjU0MTY5OTA0",
+      "title": "Prohibit IP addresses in ECHConfig.public_name.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/436",
+      "state": "OPEN",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This is yet another option to deal with public_name encoding, reference identity, and ClientHelloOuter construction issues. \r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd ",
+      "createdAt": "2021-05-26T19:42:47Z",
+      "updatedAt": "2021-05-26T19:44:17Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
+      "headRepository": "tlswg/draft-ietf-tls-esni",
+      "headRefName": "caw/prohibit-ips",
+      "headRefOid": "04c8710aeb3c26913b3ff375f7dbdef57717027b",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
