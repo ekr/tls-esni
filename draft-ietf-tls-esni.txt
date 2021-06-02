@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 15 November 2021                                         Fastly
+Expires: 4 December 2021                                          Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                             14 May 2021
+                                                             2 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 15 November 2021.
+   This Internet-Draft will expire on 4 December 2021.
 
 Copyright Notice
 
@@ -536,7 +536,7 @@ Table of Contents
          HpkeSymmetricCipherSuite cipher_suite;
          uint8 config_id;
          opaque enc<1..2^16-1>;
-         opaque outer_hello<1..2^24-1>;
+         ClientHello outer_hello;
       } ClientHelloOuterAAD;
 
    The first three parameters are equal to, respectively, the
@@ -545,8 +545,9 @@ Table of Contents
    last parameter, "outer_hello", is computed by serializing
    ClientHelloOuter with the "encrypted_client_hello" extension set to
    the empty string, i.e., the "extension_data" list has zero length.
-   Note this serialization does not include the four-byte header
-   included in the Handshake structure.
+   This serialization uses the ClientHello structure from Section 4.1.2
+   of [RFC8446], which does not include the four-byte header included in
+   the Handshake structure.
 
    The decompression process in Section 5.1 forbids
    "encrypted_client_hello" in OuterExtensions.  This ensures the
@@ -1781,9 +1782,9 @@ Table of Contents
    [I-D.irtf-cfrg-hpke]
               Barnes, R. L., Bhargavan, K., Lipp, B., and C. A. Wood,
               "Hybrid Public Key Encryption", Work in Progress,
-              Internet-Draft, draft-irtf-cfrg-hpke-08, 15 February 2021,
+              Internet-Draft, draft-irtf-cfrg-hpke-09, 26 May 2021,
               <https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-
-              hpke-08.txt>.
+              hpke-09.txt>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
