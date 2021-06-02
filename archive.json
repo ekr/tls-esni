@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-05-26T19:44:41.458208+00:00",
+  "timestamp": "2021-06-02T12:42:27.314751+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10351,7 +10351,7 @@
       "labels": [],
       "body": "I suspect this is editorial, but it would be helpful to clarify exactly how the client computes its transcript when it generates its keys, based on the permutations of who gets what. IIUC:\r\n\r\n* If the server authenticates the inner SNI, the client must construct the client hello as seen by the back-end server, including any OuterExtensions compression, and uses it in the transcript.\r\n* If the server authenticates the public SNI, the client uses the entire client hello in the hash as-is, including the (unreadable) encrypted_client_hello extension.\r\n\r\nA server that combines the client-facing and back-end functions also has to duplicate this logic, since it can see everything but maybe shouldn't use it all, and has to go through the motions of formally constructing a proper client hello to a back-end server.\r\n\r\nI found this all quite subtle to work out and asked some questions of one of the authors to fully understand. I'll leave it to the editors as to whether the draft needs some text to make this clearer.\r\n\r\n[Aside: is it computationally feasible to add some sort of \"checksum\" that would neutralize the difference in the hashes? That would make this a little less tricky, IMO]",
       "createdAt": "2021-05-06T20:27:01Z",
-      "updatedAt": "2021-05-24T19:52:05Z",
+      "updatedAt": "2021-05-28T17:56:25Z",
       "closedAt": null,
       "comments": [
         {
@@ -10402,6 +10402,13 @@
           "body": "It's decode, not encode, that needs to be deterministic. And yes, it is deterministic.",
           "createdAt": "2021-05-24T19:52:05Z",
           "updatedAt": "2021-05-24T19:52:05Z"
+        },
+        {
+          "author": "sayrer",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Here's what I ended up writing to get this working. I don't have HRR support done yet, so I expect these comments will change a little bit:\r\n\r\n```Rust\r\n    pub fn confirm_ech(\r\n        &self,\r\n        ks: &mut KeyScheduleHandshake,\r\n        server_hello: &ServerHelloPayload,\r\n        suite: &SupportedCipherSuite,\r\n    ) -> Result<([u8; 32], HandshakeHash), Error> {\r\n        // The ClientHelloInner prior to encoding.\r\n        let m = self\r\n            .inner_message\r\n            .as_ref()\r\n            .ok_or_else(|| Error::General(\"No ClientHelloInner\".to_string()))?;\r\n\r\n        // A confirmation transcript calculated from the ClientHelloInner and the ServerHello,\r\n        // with the last 8 bytes of the server random modified to be zeros.\r\n        let conf = confirmation_transcript(m, server_hello, suite.get_hash());\r\n\r\n        // Derive a secret from the current handshake and the confirmation transcript.\r\n        let derived = ks.server_ech_confirmation_secret(&conf.get_current_hash());\r\n\r\n        // Check that first 8 digits of the derived secret match the last 8 digits of the original\r\n        // server random. This match signals that the server accepted the ECH offer.\r\n        if derived.into_inner()[..8] != server_hello.random.get_encoding()[24..] {\r\n            return Err(Error::General(\"ECH didn't match\".to_string()));\r\n        }\r\n\r\n        // Since the ECH offer was accepted, the handshake will move forward with a fresh transcript\r\n        // calculated from the ClientHelloInner, and the handshake should also use the client random\r\n        // from the ClientHelloInner. The ServerHello is added to the transcript next, whether or\r\n        // not the ECH offer was accepted.\r\n        let mut inner_transcript = HandshakeHash::new();\r\n        inner_transcript.start_hash(suite.get_hash());\r\n        inner_transcript.add_message(m);\r\n        Ok((self.inner_random, inner_transcript))\r\n    }\r\n```",
+          "createdAt": "2021-05-27T19:53:32Z",
+          "updatedAt": "2021-05-28T17:56:25Z"
         }
       ]
     },
@@ -10464,7 +10471,7 @@
       "labels": [],
       "body": "Filing this as a topic for discussion. I think \"we don't like these padding strategies\" or \"that's not too complicated\" are perfectly plausible answers.\r\n\r\nSo, we need to pad the ECH payload to avoid revealing information via length. It seems to me there are two plausible strategies for padding, and you could do one or both of them. (You could do both by applying the first, then applying the second.)\r\n\r\n_NB: I don't know what the overall consensus is on padding strategies. My assumption has been that there isn't one and we're building flexibility into protocols so we can figure it out. The below is a summary of my current thinking, but there are probably lots of well-established ideas I don't know._ \r\n\r\n**Pad particular fields you are trying to hide**\r\nThere may be a particular field in your message with a length distribution you would like to hide. Perhaps some anonymity set has server name lengths up to 96 bytes. So you arrange for the client to know this, and the client adds 96 - len(server_name) extra bytes to the ClientHello somewhere. This is easy to reason about in isolation, but only considers individual fields. Information about other fields still leaks.\r\n\r\n**Generically reduce the range of possible lengths**\r\nYou may also just try to generically reduce the range of the function. Maybe you round to a multiple of 32, or round to the next power of some R > 1. This may still leak information: padding a multiple of 32 still distinguishes (big server name, big ALPN list) and (small server name, small ALPN list) when the variance is more than 32 bytes. But it pretty uniformly reduces the information leaked in general, which can help increase anonymity sets. For example, an HTTP client will always sends an ALPN of {h2, http/1.1}, but a tiny amount of overall padding can help combine HTTP ClientHellos with a non-HTTP client that might have a slightly different ALPN set. It can also mitigate mistakes. For instance, TLS tickets often embed the server name. If the server forgets to pad that when minting the ticket, the first strategy alone will leak this.\r\n\r\nThe recommended padding scheme currently only does the first kind. We add padding for server_name and largely ignore the other fields. Suppose some client wanted to additionally use the second strategy. The order of operations here is fussy and interleaves bits of ClientHelloInner and EncodedClientHelloInner:\r\n\r\n* EncodedClientHelloInner has a PSK binder\r\n* ...which depends on the non-PSK extensions of ClientHelloInner\r\n* ...which includes the padding extension\r\n* ...which depends on the length of the non-padding extensions of EncodedClientHelloInner\r\n* ...which depends on the length of the PSK binder, the non-PSK non-padding extensions of ClientHelloInner, which of them will be compressed\r\n\r\nThis is not actually a circular dependency. But it's a place the ClientHelloInner and EncodedClientHelloInner are awkward linked together. Probably the way to do it is to maintain a count of how much smaller EncodedClientHelloInner will be and subtract that from the ClientHelloInner as you construct and pad it.\r\n\r\n*If* we think this is a problem, the fix is pretty straightforward: add padding to EncodedClientHelloInner itself. Something like:\r\n\r\n```\r\nstruct {\r\n  ClientHello client_hello;\r\n  opaque padding<0..2^16-1>;\r\n} EncodedClientHelloInner;\r\n```\r\n\r\nNow the ClientHelloInner no longer depends on the length of the EncodedClientHelloInner. Is this worth doing?",
       "createdAt": "2021-05-13T22:31:28Z",
-      "updatedAt": "2021-05-20T17:32:10Z",
+      "updatedAt": "2021-05-26T22:57:59Z",
       "closedAt": null,
       "comments": [
         {
@@ -10473,6 +10480,27 @@
           "body": "Forgot to mention: Another reason to round the overall payload is that GREASE will likely be much more effective if the space of common lengths is dense.",
           "createdAt": "2021-05-20T17:32:10Z",
           "updatedAt": "2021-05-20T17:32:10Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@davidben thanks for filing! This seems reasonable, and probably avoids future one-off padding changes when we discover certain extensions are sensitive to their length. I suppose one could also include the padding extension on ClientHelloInner, but that becomes weird when you consider the ticket/binder example you raise. In general, the current draft text here does seem to be an artifact of the pre-ECH padding story. Since we're now covering multiple things in the ClientHello, applying padding more broadly seems right. I think it boils down to where we put those bits. (Your suggestion seems perfectly fine, and shouldn't be too onerous to implement. It should work fairly nicely with [our current implementation](https://github.com/cloudflare/go/blob/71ba4a16b1db8a2b5f2b0f857142fc1938134a1e/src/crypto/tls/ech.go#L464).)\r\n\r\n@cjpatton, what do you think?",
+          "createdAt": "2021-05-26T21:20:55Z",
+          "updatedAt": "2021-05-26T21:20:55Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "\nI need to catch up on this discussion, but FWIW, I wrote up\nsome notes on the padding I've done so far at [1]. I'll be\nfine with changing that later if/as better ideas emerge, so\nam not that invested in it as of now but it might be useful\nas an input here.\n\nCheers,\nS.\n\n[1] \nhttps://github.com/sftcd/openssl/blob/ECH_UPFRONT_DEC/esnistuff/padding-notes.md\n",
+          "createdAt": "2021-05-26T21:49:59Z",
+          "updatedAt": "2021-05-26T21:49:59Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "+1, this seems like a good idea to me.",
+          "createdAt": "2021-05-26T22:57:59Z",
+          "updatedAt": "2021-05-26T22:57:59Z"
         }
       ]
     },
@@ -10513,6 +10541,22 @@
           "updatedAt": "2021-05-14T18:09:43Z"
         }
       ]
+    },
+    {
+      "number": 437,
+      "id": "MDU6SXNzdWU5MDQzOTE2OTc=",
+      "title": "Example unsupported mandatory Configuration Extension",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/437",
+      "state": "OPEN",
+      "author": "sayrer",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "From the section on ECH configuration extensions: \"Clients MUST parse the extension list and check for unsupported mandatory extensions. If an unsupported mandatory extension is present, clients MUST ignore the ECHConfig.\"\r\n\r\nIs there an always-invalid extension specified for testing? This section references RFC8446, so maybe I'm missing something in that RFC.",
+      "createdAt": "2021-05-27T23:43:56Z",
+      "updatedAt": "2021-05-27T23:45:21Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -41422,13 +41466,396 @@
       "labels": [],
       "body": "This is yet another option to deal with public_name encoding, reference identity, and ClientHelloOuter construction issues. \r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd ",
       "createdAt": "2021-05-26T19:42:47Z",
-      "updatedAt": "2021-05-26T19:44:17Z",
+      "updatedAt": "2021-06-02T02:11:08Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/prohibit-ips",
-      "headRefOid": "04c8710aeb3c26913b3ff375f7dbdef57717027b",
+      "headRefOid": "74d8cb5ccf045de52d709dc7bd5d9ed34f6d9d02",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "sftcd",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "\nHiya,\n\nOn 26/05/2021 20:48, Christopher Wood wrote:\n> Sadly, no :( The format admits IP addresses, but the following\n> sentence says they should be ignored in those cases.\nI forget why we wanted to even consider all this TBH:-)\n\nI'm not sure if I'd want to write code to enforce those\nrules on the client or not TBH.\n\nOne nit: FQDNs can (and implicitly do) end in a dot. I\nbet the current text would annoy some DNS personages and\nmight even break something e.g. if the string were copied\nfrom (some library that reads in) a zone file where that\ntrailing dot is significant when present, but often\nabsent. (I dunno if a library that'd make that bug likely\nexists but I can easily imagine the code that'd cause a\ndot at the end of a public_name.)\n\nCheers,\nS.\n",
+          "createdAt": "2021-05-26T20:23:04Z",
+          "updatedAt": "2021-05-26T20:23:04Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> I forget why we wanted to even consider all this TBH:-)\r\n\r\nDo you mean consider dropping IP address support? The rationale was that encoding rules for addresses here is overly complicated, and most folks should be able to get a certificate with a name.\r\n\r\n> I'm not sure if I'd want to write code to enforce those rules on the client or not TBH.\r\n\r\nBy rules, do you mean \"ignore if IP address\"?\r\n\r\nRegarding the FQDN trailing dot, yeah, I figure we'd just assume that's implicit. We could also change the text to say the trailing dot is allowed. I don't feel strongly about that. I'm just trying to find a path forward.",
+          "createdAt": "2021-05-26T20:28:17Z",
+          "updatedAt": "2021-05-26T20:28:17Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "\n\nOn 26/05/2021 21:28, Christopher Wood wrote:\n>> I forget why we wanted to even consider all this TBH:-)\n> \n> Do you mean consider dropping IP address support? \n\nI just meant I literally forget why we need any IP address\nsupport at all within ECHConfigs.\n\n> The rationale was\n> that encoding rules for addresses here is overly complicated, and\n> most folks should be able to get a certificate with a name.\n\nYep.\n\n> \n>> I'm not sure if I'd want to write code to enforce those rules on\n>> the client or not TBH.\n> \n> By rules, do you mean \"ignore if IP address\"?\n\nSo it might be ok to delve into the public_name and do such\nchecks whilst encoding or decoding an ECHConfig but I'd not\nwanna include that code into the OpenSSL extension handling.\n\n> Regarding the FQDN trailing dot, yeah, I figure we'd just assume\n> that's implicit. We could also change the text to say the trailing\n> dot is allowed. I don't feel strongly about that. I'm just trying to\n> find a path forward.\n\nSure, it was a nit, but one that might be worth handling. (I\ndidn't check the whatwg thing though, so maybe that handles\nit too.)\n\nCheers,\nS.\n\n\n> \n",
+          "createdAt": "2021-05-27T01:09:16Z",
+          "updatedAt": "2021-05-27T01:09:16Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> So it might be ok to delve into the public_name and do such checks whilst encoding or decoding an ECHConfig but I'd not wanna include that code into the OpenSSL extension handling.\r\n\r\nWould this be part of the extension handling? I imagine it would be underneath some API where you pass ECHConfig from elsewhere (DNS) to the TLS stack. \r\n\r\nIn any case, isn't some sort of processing required for ECHConfig? If it's not a DNS name, what would you do? I would expect OpenSSL, like any major stack, to implement the ECH rejection path using public_name, absent an application-specific knob to disable that. Am I misunderstanding you?",
+          "createdAt": "2021-05-27T01:22:54Z",
+          "updatedAt": "2021-05-27T01:22:54Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "\n\nOn 27/05/2021 02:23, Christopher Wood wrote:\n>> So it might be ok to delve into the public_name and do such checks\n>> whilst encoding or decoding an ECHConfig but I'd not wanna include\n>> that code into the OpenSSL extension handling.\n> \n> Would this be part of the extension handling? I imagine it would be\n> underneath some API where you pass ECHConfig from elsewhere (DNS) to\n> the TLS stack.\n\nRight, that's what I was trying to say:-)\n\n> \n> In any case, isn't some sort of processing required for ECHConfig? If\n> it's not a DNS name, what would you do? I would expect OpenSSL, like\n> any major stack, to implement the ECH rejection path using\n> public_name, absent an application-specific knob to disable that. Am\n> I misunderstanding you?\n\nI'd need to look at the code but from memory the library\ndefaults to just providing a function to let the application\nsay to enforce the check (e.g. to dive into the SANs and see\nif a string-form name matches some SAN). I've not stumbled\nover any detailed/strict DNS name syntax checks that I recall\ne.g. checking for <=63 octet label names or whatever else is\nneeded, though there may be such code already in order to\nsupport DANE. Would have to look and see TBH - but adding\nDNS name syntax checks that are only for ECH public_name\nwouldn't be so attractive if it didn't do the same as was\nalready done elsewhere in the library or by a bunch of\napplications using the library (that latter being v. hard to\nknow of course).\n\nCheers,\nS.\n\n\n> \n",
+          "createdAt": "2021-05-27T14:52:08Z",
+          "updatedAt": "2021-05-27T14:52:08Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> (For the record, 0x1.0x2.0x3.0x4 is a domain name always; the x makes it so. IP addresses are always digits. The real trick is in realizing that 127.1 and 2130706433 and 017700000001 are all localhost.)\r\n\r\nIs it? The WHATWG parser seems to happily accept hex digits. Empirically, Chrome, Firefox, and Safari interpret http://0x7f000001:8080/ as http://127.0.0.1:8080. I'm not seeing anything in WHATWG that says IPv4 literals are always digits. RFC3986 does, but RFC3986 is much more restrictive than what the web uses.\r\nhttps://url.spec.whatwg.org/#ipv4-number-parser",
+          "createdAt": "2021-05-31T04:46:46Z",
+          "updatedAt": "2021-05-31T04:47:30Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Yeah, I misread that.  I just went ahead and implemented this in rust, just to see what the algorithm might need to look like.  It's a gigantic mess.  Another lesson in how software engineering practices of the 1980s should be left there.\r\n\r\nBut you can all see how it worked out: https://github.com/martinthomson/url-ipv4",
+          "createdAt": "2021-05-31T05:32:55Z",
+          "updatedAt": "2021-05-31T05:32:55Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Yeah, that gigantic mess, combined with ambiguity as to IP syntaxes (we have at least two so far), is why I was inclined to go the Somebody Else's Problem route. :-) But I can also live with a well-defined IP literal syntax to reject. Though, in order to be useful for browsers, that syntax must be the messy WHATWG one or a superset.\r\n\r\nIt's a lot more complexity for ECH (lots of people now need to reimplement the WHATWG parser), but I agree it does avoid reasoning about `DNSName` -> `DNSOrIP` type transitions downstream... provided your `DNSOrIP` type is compatible with the WHATWG parser. `DNSOrIP<WHATWG>` and `DNSOrIP<RFC3986>` are fine. If your random protocol's `DNSOrIP<BrandNewVariant>` is even more permissive than WHATWG's IP parser, you're out of luck and need the SEP provisions.\r\n\r\nI don't think the SEP provisions are _quite_ that dire. Anyone transiting a `DNSOrIP` through their X.509 code has to be aware of the syntax *somewhere* because X.509 uses different name types for DNS vs. IP. Whatever you use to resolve that is the right parser to use when going from ECH's `DNSName` to your `DNSOrIP` type. And, hopefully, at that transition, the IP parser is readily available so we don't have duplicate code. Another thing to keep in mind is the public name doesn't need to interact with the *entire* system, just the TLS to certificate verification path. ClientHelloOuter handshakes are discarded.\r\n\r\nThat said, realistically, everyone just passes things around as strings, and you're right that this is something people need to remember to do. I dunno, it's a mess. I guess we pick whichever evil folks generally think is lesser.",
+          "createdAt": "2021-06-01T18:35:19Z",
+          "updatedAt": "2021-06-01T18:35:19Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Yeah, the thing that concerns me is that one common system architecture, one that we use at least, has logic that makes three independent decisions.  That is, the `DNSOrIP` call is made for name resolution, TLS ECH, and certificate validation.  That's nasty duplication, so it's gross, but they could - at least in theory - share an implementation.  As you say, if one of those is more permissible than another in the wrong direction, we get bad outcomes.  To be clear, a lot else has to fail before this becomes a genuinely exploitable problem, but I don't want us to be making security holes.\r\n\r\nI put up a patch for NSS that does this validation in case anyone wants to cheat. I probably should have been doing other work, but it's done now.  The LDH validation was easier, but still non-trivial.",
+          "createdAt": "2021-06-01T23:20:15Z",
+          "updatedAt": "2021-06-01T23:20:15Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I just did some investigation and it looks like Firefox has some interesting quirks that diverge slightly from this text:\r\n\r\n1. Certificate validation accepts underscores ('_') in names.  This includes the character at the start of the name, which is worrying enough for me to open a bug, but probably fine.  The question here is whether or not we need to include underscores also.\r\n\r\n2. The code detects the type of reference identity in a strict order: DNS, IPv6, IPv4.  That means that the DNS name recognition code is responsible for rejecting IPv4 addresses.  It does that by assuming that the input has been somehow normalized and rejecting any name for which the last label is only digits.  This means that it won't recognize `1.1.1.0x1` as invalid.  As we have normalization at other points in the system this is not exploitable, but I will be opening a bug on that.\r\n\r\n3. It also rejects `1.1.1.256` as a name.  As this is not a valid IP address according to the parser we are referencing, this PR would treat that as a domain name.  I think that is safe in the sense that @davidben notes.  If the certificate validation is more strict than the spec, the only risk is to interoperability.  (And in this case, ICANN would need to open up a `.256` gTLD, which is against their rules in addition to not working.)\r\n\r\n4. (Edited to add) It also allows a dot at the end of a name, but I think we're on firm footing here if we reject that (as the PR does).\r\n\r\n@chris-wood convinced me that we might not need to be perfect in all places `DNSOrIP` is implemented, as the certificate validation is the only security-critical one.  That's true when it comes to the main things we care about (server authentication).  It's also true provided that the secondary security properties (whether a name is exposed via SNI) are not interlinked.  I don't think we have any inter-dependency like that here.  @chris-wood did manage to identify a hypothetical scenario where disagreement does lead to failures, but it's not ECH-related.",
+          "createdAt": "2021-06-02T01:12:40Z",
+          "updatedAt": "2021-06-02T02:11:07Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjY5NDc1NTY0",
+          "commit": {
+            "abbreviatedOid": "04c8710"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-26T19:47:10Z",
+          "updatedAt": "2021-05-26T19:47:30Z",
+          "comments": [
+            {
+              "originalPosition": 23,
+              "body": "```suggestion\r\nthat these criteria disallow IPv4 addresses in standard dotted-decimal or other\r\n```\r\n?",
+              "createdAt": "2021-05-26T19:47:10Z",
+              "updatedAt": "2021-05-26T19:47:30Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjY5NDc2Njk2",
+          "commit": {
+            "abbreviatedOid": "04c8710"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-26T19:48:36Z",
+          "updatedAt": "2021-05-26T19:48:37Z",
+          "comments": [
+            {
+              "originalPosition": 23,
+              "body": "Sadly, no :( The format admits IP addresses, but the following sentence says they should be ignored in those cases.",
+              "createdAt": "2021-05-26T19:48:36Z",
+              "updatedAt": "2021-05-26T19:48:37Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjY5NTkzNjgz",
+          "commit": {
+            "abbreviatedOid": "04c8710"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2021-05-26T22:22:20Z",
+          "updatedAt": "2021-05-26T22:22:24Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "So this says \"work out if it is an IP address and don't allow it\".  That's too imprecise for me.\r\n\r\nThe [parsing algorithm for IP addresses in the whatWG URL spec](https://url.spec.whatwg.org/#concept-ipv4-parser) is very precise.  You could reference that and say that if that returns a value then the ECHConfig can be ignored.\r\n\r\nA MUST here without that level of precision is not good.  I can't test this.  Well, I can make something up, but that's not how this works.",
+              "createdAt": "2021-05-26T22:22:20Z",
+              "updatedAt": "2021-05-26T22:22:24Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjY5NTk1NDA3",
+          "commit": {
+            "abbreviatedOid": "04c8710"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-26T22:25:49Z",
+          "updatedAt": "2021-05-26T22:25:50Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "Thanks -- I don't think any of us (beyond you) knew that reference existed. We can certainly cite it to make this algorithm more precise. ",
+              "createdAt": "2021-05-26T22:25:49Z",
+              "updatedAt": "2021-05-26T22:25:50Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjY5NjAwNzIx",
+          "commit": {
+            "abbreviatedOid": "74d8cb5"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-26T22:37:14Z",
+          "updatedAt": "2021-05-26T22:37:15Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "@martinthomson I referenced it directly as a possible way to make this determination. I'm not sure we want to _require_ use of this specific algorithm (especially since that spec is a living document and may change). We could alternatively try to pull that algorithm into this document, but that seems... terrible.",
+              "createdAt": "2021-05-26T22:37:14Z",
+              "updatedAt": "2021-05-26T22:44:12Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjcwMzQ1ODgx",
+          "commit": {
+            "abbreviatedOid": "74d8cb5"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-27T15:39:43Z",
+          "updatedAt": "2021-05-27T15:39:43Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "I agree with Martin that any MUST-level requirements should be precise. Though the WHATWG algorithm is... definitely hairy. :-/ I imagine most TLS libraries, including ours, will not have a version of it readily available, so we'd have to reimplement it.\r\n\r\nI currently lean towards not trying too hard to filter IPs and instead saying:\r\n\r\n* The public name is a DNS name. DNS names have such-and-such syntax. Anything outside that syntax is invalid. (We could, optionally, exclude the tighter [RFC3986 definition](https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2), but see note below.)\r\n* When your application evaluates whether a certificate is valid for a public name, you must interpret the public name as a DNS name. That means, you should match it against DNS entries in the SAN list.\r\n* Note, however, that the syntax for IPv4 literals in URLs are also valid DNS names. (Non-normative, so we could even cite a living WHATWG standard without worry.) If your application would otherwise interpret the public name as an IP literal, you should make sure you don't go down the IP address matching logic.\r\n* At the TLS level, we consider the embedding of IPv4 literals in strings an application-specific thing and assume different applications may do this subtly differently.\r\n\r\nThe consequence of this is:\r\n\r\n* If your application's certificate logic already separates DNS strings and IP strings, you can just send the string down the DNS string path and don't worry too hard.\r\n* If your application's certificate logic takes a string and expects to parse out DNS vs IP address out of one string for web stuff, you should detect this (hopefully now your application's IP parser is available)\r\n* Servers that live in an ecosystem where \"127.0.0.1\" is not a valid DNS name should not use \"127.0.0.1\" as a public name because it won't work.\r\n\r\nIn other words, the web-specific `MakeOriginFromDNSName(\"https\", \"127.0.0.1\", 443)` function should fail because `https://127.0.0.1` gives back an origin that's interpreted as an IP literal, not a DNS name. It's not possible to express \"127.0.0.1\", the DNS name in the web.\r\n\r\nThis is slightly disappointing because, practically, that WHATWG-IP-literals are invalid DNS names is really a universal constraint. But we seem to have made enough of a mess here that I don't think we can guarantee the application won't think it is an IPv4 literal. (RFC3986 has [another definition](https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2) of IPv4 literal, but if we used it, we'd still allow a bunch of strings that, on the web, is interpreted as an IPv4 literal. So applications would need to account for this `MakeOriginFromDNSName` error case regardless.)",
+              "createdAt": "2021-05-27T15:39:43Z",
+              "updatedAt": "2021-05-27T15:40:20Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjcwMzY3MDI2",
+          "commit": {
+            "abbreviatedOid": "74d8cb5"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-27T15:58:09Z",
+          "updatedAt": "2021-05-27T15:58:10Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "@davidben two quick comments:\r\n\r\n1. If we say \"anything outside that syntax is invalid,\" without giving a function to determine if it's invalid, then we're back at Martin's criticism, right?\r\n2. If the check is deferred to the application when validating the certificate, doesn't this run the risk of including an IP address in the outer SNI extension?",
+              "createdAt": "2021-05-27T15:58:09Z",
+              "updatedAt": "2021-05-27T16:01:39Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjcwMzg1NDE5",
+          "commit": {
+            "abbreviatedOid": "74d8cb5"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-27T16:15:37Z",
+          "updatedAt": "2021-05-27T16:15:37Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "> If we say \"anything outside that syntax is invalid,\" without giving a function to determine if it's invalid, then we're back at Martin's criticism, right?\r\n\r\nSorry, when I say \"that syntax\", I mean just the syntax that DNS defines. The one that sadly allows IPv4 literals because IPv4 literals are ill-defined across all uses.\r\n\r\n> If the check is deferred to the application when validating the certificate, doesn't this run the risk of including an IP address in the outer SNI extension?\r\n\r\nIt does, but I think that's fine. I think the two risks here are that the DNS can induce the client to send some string in SNI to some server, and it technically violates RFC6066. The former doesn't haven't a clear threat model, more fuzzy \"well random private servers are often buggy\". I think it's reasonable to say we'll validate the DNS-level syntax and assume the server behaves equally well given \"a.b.c.d\" or \"0x1.0x2.0x3.0x4\". The latter is true, but RFC6066 doesn't actually define the syntax anyway. I'm not really sure how one is meant to interpret that prohibition apart beyond \"look deep into your heart and if this *feels* like an IP address, don't do it\". And under this interpretation, TLS truly,  deeply in its heart, wants a DNS name of \"0x1.0x2.0x3.0x4\". That the application will never accept any certificate for that *DNS* name is the application's problem. :-)\r\n\r\n(This is not a *great* interpretation. It's just barely self-consistent enough to say with a straight face, in hopes of getting out of this hole.)",
+              "createdAt": "2021-05-27T16:15:37Z",
+              "updatedAt": "2021-05-27T16:16:18Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjcwNDQxMzM0",
+          "commit": {
+            "abbreviatedOid": "74d8cb5"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-05-27T17:14:01Z",
+          "updatedAt": "2021-05-27T17:14:01Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "Gotcha, thanks for clarifying! I'm fine with this as it avoids the parsing complexity altogether and moves it to other places in the stack -- \"not my problem\" =)",
+              "createdAt": "2021-05-27T17:14:01Z",
+              "updatedAt": "2021-05-27T17:14:01Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjcxODc2Nzky",
+          "commit": {
+            "abbreviatedOid": "74d8cb5"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "So I think that this is - unfortunately - the only sensible answer here.\r\n\r\nThe original sin here was the overloading of names and IP addresses in every interface that has ever accepted input from humans.  That's convenient, but the fact that an IPv4 address and domain name have overlapping syntax is a real problem.  However bad that is, that's the situation we have to deal with.\r\n\r\n(For the record, 0x1.0x2.0x3.0x4 is a domain name always; the x makes it so.  IP addresses are always digits.  The real trick is in realizing that 127.1 and 2130706433 and 017700000001 are all localhost.)\r\n\r\nAs much as @davidben's idea here is appealing (i.e., the [SEP](https://en.wikipedia.org/wiki/Somebody_else%27s_problem) cloaking field), that is a great way to get real security problems.  If you have an input that results in different parts of the system disagreeing about semantics, the time to next vulnerability (MTTV?) goes right down.  I know that we are in the business of expanding the attack surface, but that's a bit to easy.\r\n\r\nWe can't rely on \"usage\" context to protect us either.  Say protocol X says \"we don't accept IP addresses\" or protocol Y says \"we only accept strict decimal dotted quad\".  That doesn't work if someone forgets to validate inputs.  That a problem is someone else's fault doesn't absolve us.\r\n\r\nWe might be able to rely on ICANN.  Might.  They haven't enabled all-numeric TLDs.  Their current rules exclude the possibility.  If you trust in that, then looking for the last label being all digits might work, but I'm not going to advocate for trust like that.  I'll just write the code.\r\n\r\nI'll let you know how that goes.",
+          "createdAt": "2021-05-30T23:49:17Z",
+          "updatedAt": "2021-05-31T00:07:51Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "You will need to ask whatwg to make that anchor stable if you plan to reference it.  There's a whole process, but it all boils down to opening an issue on the relevant spec and asking nicely.",
+              "createdAt": "2021-05-30T23:49:17Z",
+              "updatedAt": "2021-05-31T00:07:51Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 438,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjU3NTAwNzgy",
+      "title": "Remove redundant length prefix from ClientHelloOuterAAD.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/438",
+      "state": "MERGED",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "ClientHello is already a defined structure. No need to wrap it in an opaque byte array. This avoids needing to fill in an extra length prefix in front.",
+      "createdAt": "2021-05-29T16:55:47Z",
+      "updatedAt": "2021-06-02T12:42:10Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "simpler-aad",
+      "headRefOid": "197b1d10bebbe9ffd9b772bb6f7397d688eb7d92",
+      "closedAt": "2021-06-02T12:42:10Z",
+      "mergedAt": "2021-06-02T12:42:10Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "5c7eba676d160f52f299d4750485b2524555fc2a"
+      },
+      "comments": [
+        {
+          "author": "eligrey",
+          "authorAssociation": "NONE",
+          "body": "Isn't the length prefix there in order to prevent ossification?",
+          "createdAt": "2021-05-29T17:23:38Z",
+          "updatedAt": "2021-05-29T17:23:38Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Could you elaborate? I don't see how this relates to ossification.\r\n\r\nNote AAD values aren't parsed or even sent over the wire. Rather, the requirement on them is injectivity.",
+          "createdAt": "2021-05-29T17:39:33Z",
+          "updatedAt": "2021-05-29T17:40:08Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "If the thinking is one might want to change what goes in the AAD later, the length prefix doesn't do anything. You'd need an actual distinguishing field like a type or version. We get that via labels and such when setting up the ECH context itself. By the time we've settled on speaking a particular ECH-like protocol, the AAD structure is fixed.",
+          "createdAt": "2021-05-29T17:44:08Z",
+          "updatedAt": "2021-05-29T17:44:08Z"
+        },
+        {
+          "author": "eligrey",
+          "authorAssociation": "NONE",
+          "body": "Thanks for the clarification. I was confused about the specifics of how this prefix was used.",
+          "createdAt": "2021-05-29T19:30:56Z",
+          "updatedAt": "2021-05-29T19:31:09Z"
+        },
+        {
+          "author": "sayrer",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "`Note this serialization uses the ClientHello structure from Section 4.1.2 of {{RFC8446}}, which does not include...`\r\n\r\nCan probably just say `This serialization...` instead of leading with `Note`, which is almost always unnecessary.",
+          "createdAt": "2021-05-30T21:52:43Z",
+          "updatedAt": "2021-05-30T21:52:43Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjczNjU3MDQw",
+          "commit": {
+            "abbreviatedOid": "a6701ef"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-01T22:59:33Z",
+          "updatedAt": "2021-06-01T22:59:46Z",
+          "comments": [
+            {
+              "originalPosition": 15,
+              "body": "```suggestion\r\n`extension_data` list has zero length. This serialization uses the\r\nClientHello structure from Section 4.1.2 of {{RFC8446}}, which does not include\r\n```",
+              "createdAt": "2021-06-01T22:59:34Z",
+              "updatedAt": "2021-06-01T22:59:46Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 439,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjU3NTA2ODk2",
+      "title": "Add some security considerations for cookie values.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/439",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "One of the motivations for encrypting HRR in #407 was the leaks from cookie values. If we don't go with such a construction (which seems likely) and instead do #417 or #422, cookies will be in the clear. That means it is instead on the backend servers to construct cookie values without leaking information. This PR provides security considerations to that effect.\r\n\r\nUnfortunately the requirements on backend servers within a Split Mode deployment are a bit onerous. I suspect, in practice, the answer is that Split Mode deployments cannot even use cookies on the backend server. Between HRRs being rare and stateless HRR being unnecessary over TCP or QUIC, that's hopefully fine. (Note this is different from #418, which was about the *client-facing* server being stateless. This applies if the *backend* server is stateless.)",
+      "createdAt": "2021-05-29T17:37:46Z",
+      "updatedAt": "2021-05-29T17:37:46Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "unencrypted-cookies",
+      "headRefOid": "5c1db4fb8618207e1d43222245335af3ed057b15",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
