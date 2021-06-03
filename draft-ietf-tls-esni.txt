@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 4 December 2021                                          Fastly
+Expires: 5 December 2021                                          Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                             2 June 2021
+                                                             3 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 4 December 2021.
+   This Internet-Draft will expire on 5 December 2021.
 
 Copyright Notice
 
