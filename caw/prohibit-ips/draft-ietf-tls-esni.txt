@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 27 November 2021                                         Fastly
+Expires: 5 December 2021                                          Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                             26 May 2021
+                                                             3 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 27 November 2021.
+   This Internet-Draft will expire on 5 December 2021.
 
 Copyright Notice
 
@@ -359,15 +359,23 @@ Table of Contents
       "ECHConfig" structure whose "public_name" does not meet these
       criteria.  Note that these criteria allow IPv4 addresses in
       standard dotted-decimal or other non-standard notations such as
-      octal and hexadecimal (see [RFC3986], Section 7.4).  Clients MUST
-      ignore the "ECHConfig" if it contains an encoded IPv4 address.  To
-      determine if a public_name value is an IPv4 address, clients can
-      invoke the IPv4 parser algorithm in [WhatWGURLAddressParser].  It
-      returns a value when the input is an IPv4 address.
+      octal and hexadecimal (see [RFC3986], Section 7.4).  Clients
+      SHOULD ignore the "ECHConfig" if it contains an encoded IPv4
+      address.  (To determine if a public_name value is an IPv4 address,
+      clients can invoke the IPv4 parser algorithm in
+      [WhatWGURLAddressParser].  It returns a value when the input is an
+      IPv4 address.)  Failure to validate that public_name is not an
+      IPv4 address may cause connection failures to the client-facing
+      server.  However, it is not expected to induce security failures.
+      Clients will use this name to authenticate the client-facing
+      server and will fail closed if the client-facing server cannot
+      produce a certificate bound to the same name.
 
    extensions  A list of extensions that the client must take into
       consideration when generating a ClientHello message.  These are
       described below (Section 4.1).
+
+   [[OPEN ISSUE: fix reference to WhatWGURLAddressParser]]
 
    The "HpkeKeyConfig" structure contains the following fields:
 
