@@ -653,7 +653,7 @@ Table of Contents
        client per [RFC8446], Section 4.2.10.
 
    Note that these rules may change in the presence of an application
-   profile standard specifying otherwise.
+   profile specifying otherwise.
 
    [[OPEN ISSUE: We currently require HRR-sensitive parameters to match
    in ClientHelloInner and ClientHelloOuter in order to simplify client-
