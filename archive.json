@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-02T12:42:27.314751+00:00",
+  "timestamp": "2021-06-03T20:49:15.121640+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10421,10 +10421,12 @@
       "author": "sayrer",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
-      "labels": [],
+      "labels": [
+        "editorial"
+      ],
       "body": "https://tools.ietf.org/id/draft-ietf-tls-esni-10.html#section-5.1-9\r\n\r\nThis should have its own section or sub-section. The projects I work on generally refer to RFC sections at the most, so as not to repeat the text of the or RFC or I-D (which may grow out of date).",
       "createdAt": "2021-05-12T22:39:14Z",
-      "updatedAt": "2021-05-12T22:39:14Z",
+      "updatedAt": "2021-06-03T12:23:00Z",
       "closedAt": null,
       "comments": []
     },
@@ -41466,7 +41468,7 @@
       "labels": [],
       "body": "This is yet another option to deal with public_name encoding, reference identity, and ClientHelloOuter construction issues. \r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd ",
       "createdAt": "2021-05-26T19:42:47Z",
-      "updatedAt": "2021-06-02T02:11:08Z",
+      "updatedAt": "2021-06-02T22:57:39Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
@@ -41480,7 +41482,7 @@
       "comments": [
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\nHiya,\n\nOn 26/05/2021 20:48, Christopher Wood wrote:\n> Sadly, no :( The format admits IP addresses, but the following\n> sentence says they should be ignored in those cases.\nI forget why we wanted to even consider all this TBH:-)\n\nI'm not sure if I'd want to write code to enforce those\nrules on the client or not TBH.\n\nOne nit: FQDNs can (and implicitly do) end in a dot. I\nbet the current text would annoy some DNS personages and\nmight even break something e.g. if the string were copied\nfrom (some library that reads in) a zone file where that\ntrailing dot is significant when present, but often\nabsent. (I dunno if a library that'd make that bug likely\nexists but I can easily imagine the code that'd cause a\ndot at the end of a public_name.)\n\nCheers,\nS.\n",
           "createdAt": "2021-05-26T20:23:04Z",
           "updatedAt": "2021-05-26T20:23:04Z"
@@ -41494,7 +41496,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 26/05/2021 21:28, Christopher Wood wrote:\n>> I forget why we wanted to even consider all this TBH:-)\n> \n> Do you mean consider dropping IP address support? \n\nI just meant I literally forget why we need any IP address\nsupport at all within ECHConfigs.\n\n> The rationale was\n> that encoding rules for addresses here is overly complicated, and\n> most folks should be able to get a certificate with a name.\n\nYep.\n\n> \n>> I'm not sure if I'd want to write code to enforce those rules on\n>> the client or not TBH.\n> \n> By rules, do you mean \"ignore if IP address\"?\n\nSo it might be ok to delve into the public_name and do such\nchecks whilst encoding or decoding an ECHConfig but I'd not\nwanna include that code into the OpenSSL extension handling.\n\n> Regarding the FQDN trailing dot, yeah, I figure we'd just assume\n> that's implicit. We could also change the text to say the trailing\n> dot is allowed. I don't feel strongly about that. I'm just trying to\n> find a path forward.\n\nSure, it was a nit, but one that might be worth handling. (I\ndidn't check the whatwg thing though, so maybe that handles\nit too.)\n\nCheers,\nS.\n\n\n> \n",
           "createdAt": "2021-05-27T01:09:16Z",
           "updatedAt": "2021-05-27T01:09:16Z"
@@ -41508,7 +41510,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 27/05/2021 02:23, Christopher Wood wrote:\n>> So it might be ok to delve into the public_name and do such checks\n>> whilst encoding or decoding an ECHConfig but I'd not wanna include\n>> that code into the OpenSSL extension handling.\n> \n> Would this be part of the extension handling? I imagine it would be\n> underneath some API where you pass ECHConfig from elsewhere (DNS) to\n> the TLS stack.\n\nRight, that's what I was trying to say:-)\n\n> \n> In any case, isn't some sort of processing required for ECHConfig? If\n> it's not a DNS name, what would you do? I would expect OpenSSL, like\n> any major stack, to implement the ECH rejection path using\n> public_name, absent an application-specific knob to disable that. Am\n> I misunderstanding you?\n\nI'd need to look at the code but from memory the library\ndefaults to just providing a function to let the application\nsay to enforce the check (e.g. to dive into the SANs and see\nif a string-form name matches some SAN). I've not stumbled\nover any detailed/strict DNS name syntax checks that I recall\ne.g. checking for <=63 octet label names or whatever else is\nneeded, though there may be such code already in order to\nsupport DANE. Would have to look and see TBH - but adding\nDNS name syntax checks that are only for ECH public_name\nwouldn't be so attractive if it didn't do the same as was\nalready done elsewhere in the library or by a bunch of\napplications using the library (that latter being v. hard to\nknow of course).\n\nCheers,\nS.\n\n\n> \n",
           "createdAt": "2021-05-27T14:52:08Z",
           "updatedAt": "2021-05-27T14:52:08Z"
@@ -41547,6 +41549,62 @@
           "body": "I just did some investigation and it looks like Firefox has some interesting quirks that diverge slightly from this text:\r\n\r\n1. Certificate validation accepts underscores ('_') in names.  This includes the character at the start of the name, which is worrying enough for me to open a bug, but probably fine.  The question here is whether or not we need to include underscores also.\r\n\r\n2. The code detects the type of reference identity in a strict order: DNS, IPv6, IPv4.  That means that the DNS name recognition code is responsible for rejecting IPv4 addresses.  It does that by assuming that the input has been somehow normalized and rejecting any name for which the last label is only digits.  This means that it won't recognize `1.1.1.0x1` as invalid.  As we have normalization at other points in the system this is not exploitable, but I will be opening a bug on that.\r\n\r\n3. It also rejects `1.1.1.256` as a name.  As this is not a valid IP address according to the parser we are referencing, this PR would treat that as a domain name.  I think that is safe in the sense that @davidben notes.  If the certificate validation is more strict than the spec, the only risk is to interoperability.  (And in this case, ICANN would need to open up a `.256` gTLD, which is against their rules in addition to not working.)\r\n\r\n4. (Edited to add) It also allows a dot at the end of a name, but I think we're on firm footing here if we reject that (as the PR does).\r\n\r\n@chris-wood convinced me that we might not need to be perfect in all places `DNSOrIP` is implemented, as the certificate validation is the only security-critical one.  That's true when it comes to the main things we care about (server authentication).  It's also true provided that the secondary security properties (whether a name is exposed via SNI) are not interlinked.  I don't think we have any inter-dependency like that here.  @chris-wood did manage to identify a hypothetical scenario where disagreement does lead to failures, but it's not ECH-related.",
           "createdAt": "2021-06-02T01:12:40Z",
           "updatedAt": "2021-06-02T02:11:07Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Given that the primary risk in disagreement between DNS or IP here seems to be interopability, and not security, perhaps we can downgrade the \"MUST ignore\" to a \"SHOULD ignore\" and clarify the risk? Failing early and consistently is certainly better, but the (possibly new) parsing requirement this imposes on the stack may not be worth the complexity. @davidben, @martinthomson: what do you think?",
+          "createdAt": "2021-06-02T12:50:49Z",
+          "updatedAt": "2021-06-02T12:50:49Z"
+        },
+        {
+          "author": "richsalz",
+          "authorAssociation": "NONE",
+          "body": "I know that the parsing in OpenSSL is naive, doesn't easily handle fallbacks/alternatives.  Further, it just calls the local platform code, which means there could be inconsistencies.",
+          "createdAt": "2021-06-02T13:23:25Z",
+          "updatedAt": "2021-06-02T13:23:25Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Re SHOULD, if we do that, I think we should have some (probably less verbose) version of https://github.com/tlswg/draft-ietf-tls-esni/pull/436#discussion_r640744959 as guidance.\r\n\r\nWhatever we do, we should say \"ECH believes this is a DNS name, so please verify accordingly\" because we need to define semantics for things we expose out of TLS. The IP address thing is how to square \"DNS name\" with all systems built around \"DNS or IP\" serializations. We can either:\r\n\r\n* Say \"ECH _promises_ not to give you something that looks like an IP\" and define how to do that. But \"DNS or IP\" systems do not use consistent or simple syntaxes, so this is tricky. (But probably doable since the WHATWG syntax is likely a superset of every other one.)\r\n* Or we can say \"you might get something that looks like an IP, deal with it\" with rough guidance on how to deal with it. But this is punting up a layer which may or may not forget and misbehave. (How much do we care?)\r\n\r\nI'm not sure there's a way out of picking one. Anything short of a MUST that covers the \"DNS or IP\" syntaxes we care about puts us in the second bucket.",
+          "createdAt": "2021-06-02T14:01:24Z",
+          "updatedAt": "2021-06-02T14:12:23Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> Re SHOULD, if we do that, I think we should have some (probably less verbose) version of [#436 (comment)](https://github.com/tlswg/draft-ietf-tls-esni/pull/436#discussion_r640744959) as guidance.\r\n\r\nIndeed \u2014 this is what I mean by clarifying the risk. I\u2019d also keep the pointer to the WHATWG parser in case someone wants to enforce that and otherwise doesn\u2019t have a parser to rely upon. \r\n\r\n> \r\n> Whatever we do, we should say \"ECH believes this is a DNS name, so please verify accordingly\" because we need to define semantics for things we expose out of TLS. The IP address thing is how to square \"DNS name\" with all systems built around \"DNS or IP\" serializations. We can either:\r\n> \r\n> * Say \"ECH _promises_ not to give you something that looks like an IP\" and define how to do that. But \"DNS or IP\" systems do not use consistent or simple syntaxes, so this is tricky. (But probably doable since the WHATWG syntax is likely a superset of every other one.)\r\n> * Or we can say \"you might get something that looks like an IP, deal with it\" with rough guidance on how to deal with it. But this is punting up a layer which may or may not forget and misbehave. (How much do we care?)\r\n\r\nThe sheer number of inconsistencies makes me lean towards the latter, with an _example_ of how to deal with the inconsistency. (That is, guidance for how to deal with it in ECH, and guidance for how to deal with it outside of ECH.)\r\n\r\n> I'm not sure there's a way out of picking one. Anything short of a MUST that covers the \"DNS or IP\" syntaxes we care about puts us in the second bucket.\r\n\r\nYeah, I\u2019m not suggesting we do nothing. I\u2019m just proposing we relax the MUST for stacks that might otherwise fall back on a check elsewhere. This seems to balance things nicely. \r\n\r\n",
+          "createdAt": "2021-06-02T14:54:29Z",
+          "updatedAt": "2021-06-02T14:54:29Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Ah, sure. Works for me, though I was already okay with the Somebody Else's Problem version. :-) (Would we even need a SHOULD at that point, or should we just leave IP parsing out of ECH's hands entirely? We'd be always punting it, but consistently so.)\r\n\r\n@martinthomson, WDYT? I wasn't sure whether to read your most recent comment as changing your mind here or still preferring ECH apply an IP parser.",
+          "createdAt": "2021-06-02T21:41:59Z",
+          "updatedAt": "2021-06-02T21:41:59Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> Would we even need a SHOULD at that point, or should we just leave IP parsing out of ECH's hands entirely? We'd be always punting it, but consistently so.\r\n\r\nI learn towards keeping it for now and removing it later if, after we all implement the thing, consider it unnecessary. There seem to be enough strange edge cases with how applications might use the `DNSOrIp` value in verifying client-facing servers, and removing sharp edges seems useful. That said, if all of the major stacks hate this, then certainly that says a lot too. :-)",
+          "createdAt": "2021-06-02T22:16:22Z",
+          "updatedAt": "2021-06-02T22:16:22Z"
+        },
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I agree that we should just change MUST to SHOULD and add some verbiage about the risks. It strikes me that we're trying to close the barn doors after the horses are out. The fact is that most systems already have some sort of DNS and IP parser, some of which are probably not consistent with each other, and to now say \"you have to be consistent and here are the rules you must abide by\" just isn't realistic.\r\n\r\nWe had a case recently where Safari wasn't allowing SNIs with an underscore--because we were following the spec--but when someone complained (https://twitter.com/ifette/status/1375559666340618242?s=20), we discovered that Chrome and Firefox were allowing underscores and changed our policy to reflect this, even though it went against the spec. If we can't all follow the official DNS parsing rules now, without ECH, what makes you think we would all follow the official DNS and IP parsing rules later?\r\n\r\nIf we just say \"use the parsers you already have\" (and point to the WHATWG parser for those who don't already have one as @chris-wood suggested), at least we'll be gaining consistency within a system.",
+          "createdAt": "2021-06-02T22:50:19Z",
+          "updatedAt": "2021-06-02T22:51:33Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Given that I've already written the code, there is a bit of sunk-cost that influences my thinking now...  \r\n\r\nThat said, I am thinking that the worst that can happen here if someone gets this wrong.  We get either:\r\n\r\n* an ECH configuration is ignored because we falsely believe that it is an IP address\r\n* a bad ECH configuration with an IP address is used because we falsely believe that it is a DNS name\r\n\r\nFor the former, if this happens, then we might not use ECH when we could.  That's not great, but we might get bug reports and can fix the parser (or people can use better names).\r\n\r\nFor the latter, we will put an IP in SNI and maybe the IP will make it as far as certificate validation.  If the server has a valid IP certificate for that address, then maybe it just works.  Maybe the server chokes on the SNI.  Maybe the client code chokes on the bizarre IP address and fails (this is what moz::pkix would do, it is picky about the format of addresses as it assumes that the caller normalizes them).  If the server doesn't have a valid certificate, then the connection fails.\r\n\r\nIn this latter case, it seems like failure to validate the ECH config correctly more often leads to connection failures.  That suggests that the SHOULD is worthwhile, because we don't want some clients connecting and others failing to connect.\r\n\r\nCarrick is right to point to our collective differences, but I see that as unhealthy rather than inevitable.  We should fix the underscore thing by updating specifications to match reality (Anne van Kesteren is right about this...again), but I know the IETF well enough to be wary of proposing that, even if it would be the right thing to do.  I do think that the suggestion to reuse existing parsers is sensible.\r\n\r\nSo I'm down for making this change with a \"SHOULD\" in place of the \"MUST\".",
+          "createdAt": "2021-06-02T22:57:38Z",
+          "updatedAt": "2021-06-02T22:57:38Z"
         }
       ],
       "reviews": [
