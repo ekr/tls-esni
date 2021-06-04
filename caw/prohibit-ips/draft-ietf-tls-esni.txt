@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 5 December 2021                                          Fastly
+Expires: 6 December 2021                                          Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                             3 June 2021
+                                                             4 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 5 December 2021.
+   This Internet-Draft will expire on 6 December 2021.
 
 Copyright Notice
 
@@ -368,8 +368,8 @@ Table of Contents
       IPv4 address may cause connection failures to the client-facing
       server.  However, it is not expected to induce security failures.
       Clients will fail closed if the client-facing server cannot
-      produce a certificate bound to the a reference identity based on
-      the public_name.
+      produce a certificate bound to the reference identity based on the
+      public_name.
 
    extensions  A list of extensions that the client must take into
       consideration when generating a ClientHello message.  These are
