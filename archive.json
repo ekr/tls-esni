@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-03T20:49:15.121640+00:00",
+  "timestamp": "2021-06-04T20:45:19.286088+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10473,7 +10473,7 @@
       "labels": [],
       "body": "Filing this as a topic for discussion. I think \"we don't like these padding strategies\" or \"that's not too complicated\" are perfectly plausible answers.\r\n\r\nSo, we need to pad the ECH payload to avoid revealing information via length. It seems to me there are two plausible strategies for padding, and you could do one or both of them. (You could do both by applying the first, then applying the second.)\r\n\r\n_NB: I don't know what the overall consensus is on padding strategies. My assumption has been that there isn't one and we're building flexibility into protocols so we can figure it out. The below is a summary of my current thinking, but there are probably lots of well-established ideas I don't know._ \r\n\r\n**Pad particular fields you are trying to hide**\r\nThere may be a particular field in your message with a length distribution you would like to hide. Perhaps some anonymity set has server name lengths up to 96 bytes. So you arrange for the client to know this, and the client adds 96 - len(server_name) extra bytes to the ClientHello somewhere. This is easy to reason about in isolation, but only considers individual fields. Information about other fields still leaks.\r\n\r\n**Generically reduce the range of possible lengths**\r\nYou may also just try to generically reduce the range of the function. Maybe you round to a multiple of 32, or round to the next power of some R > 1. This may still leak information: padding a multiple of 32 still distinguishes (big server name, big ALPN list) and (small server name, small ALPN list) when the variance is more than 32 bytes. But it pretty uniformly reduces the information leaked in general, which can help increase anonymity sets. For example, an HTTP client will always sends an ALPN of {h2, http/1.1}, but a tiny amount of overall padding can help combine HTTP ClientHellos with a non-HTTP client that might have a slightly different ALPN set. It can also mitigate mistakes. For instance, TLS tickets often embed the server name. If the server forgets to pad that when minting the ticket, the first strategy alone will leak this.\r\n\r\nThe recommended padding scheme currently only does the first kind. We add padding for server_name and largely ignore the other fields. Suppose some client wanted to additionally use the second strategy. The order of operations here is fussy and interleaves bits of ClientHelloInner and EncodedClientHelloInner:\r\n\r\n* EncodedClientHelloInner has a PSK binder\r\n* ...which depends on the non-PSK extensions of ClientHelloInner\r\n* ...which includes the padding extension\r\n* ...which depends on the length of the non-padding extensions of EncodedClientHelloInner\r\n* ...which depends on the length of the PSK binder, the non-PSK non-padding extensions of ClientHelloInner, which of them will be compressed\r\n\r\nThis is not actually a circular dependency. But it's a place the ClientHelloInner and EncodedClientHelloInner are awkward linked together. Probably the way to do it is to maintain a count of how much smaller EncodedClientHelloInner will be and subtract that from the ClientHelloInner as you construct and pad it.\r\n\r\n*If* we think this is a problem, the fix is pretty straightforward: add padding to EncodedClientHelloInner itself. Something like:\r\n\r\n```\r\nstruct {\r\n  ClientHello client_hello;\r\n  opaque padding<0..2^16-1>;\r\n} EncodedClientHelloInner;\r\n```\r\n\r\nNow the ClientHelloInner no longer depends on the length of the EncodedClientHelloInner. Is this worth doing?",
       "createdAt": "2021-05-13T22:31:28Z",
-      "updatedAt": "2021-05-26T22:57:59Z",
+      "updatedAt": "2021-06-04T03:28:44Z",
       "closedAt": null,
       "comments": [
         {
@@ -10492,7 +10492,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\nI need to catch up on this discussion, but FWIW, I wrote up\nsome notes on the padding I've done so far at [1]. I'll be\nfine with changing that later if/as better ideas emerge, so\nam not that invested in it as of now but it might be useful\nas an input here.\n\nCheers,\nS.\n\n[1] \nhttps://github.com/sftcd/openssl/blob/ECH_UPFRONT_DEC/esnistuff/padding-notes.md\n",
           "createdAt": "2021-05-26T21:49:59Z",
           "updatedAt": "2021-05-26T21:49:59Z"
@@ -10503,6 +10503,13 @@
           "body": "+1, this seems like a good idea to me.",
           "createdAt": "2021-05-26T22:57:59Z",
           "updatedAt": "2021-05-26T22:57:59Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Wrote up some text for this https://github.com/tlswg/draft-ietf-tls-esni/pull/443.",
+          "createdAt": "2021-06-04T03:28:44Z",
+          "updatedAt": "2021-06-04T03:28:44Z"
         }
       ]
     },
@@ -10557,6 +10564,95 @@
       "body": "From the section on ECH configuration extensions: \"Clients MUST parse the extension list and check for unsupported mandatory extensions. If an unsupported mandatory extension is present, clients MUST ignore the ECHConfig.\"\r\n\r\nIs there an always-invalid extension specified for testing? This section references RFC8446, so maybe I'm missing something in that RFC.",
       "createdAt": "2021-05-27T23:43:56Z",
       "updatedAt": "2021-05-27T23:45:21Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 440,
+      "id": "MDU6SXNzdWU5MTA4NDc5OTE=",
+      "title": "Mitigate HRR when possible",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/440",
+      "state": "OPEN",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This issue tracks any changes to the ECH specification that can mitigate or minimize the probability of HRR in the context of ECH. Note that it is not meant to disable ECH when HRR occurs, but rather to make this case unlikely. This may mean, for example, giving guidance on how to construct ClientHellos based on server hints in the HTTPS record, though this is somewhat orthogonal to ECH. \r\n\r\ncc @sftcd, @ekr, @martinthomson, @davidben, @cjpatton ",
+      "createdAt": "2021-06-03T20:58:08Z",
+      "updatedAt": "2021-06-04T13:07:37Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "As you say, this seems orthogonal to ECH. I suspect anything we do here will want to be separate work, where we can give it the time it deserves. (Should be solvable, but I'd want us to work through the downgrade implications.)",
+          "createdAt": "2021-06-03T21:29:57Z",
+          "updatedAt": "2021-06-03T21:29:57Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\nHiya,\n\nOn 03/06/2021 22:30, David Benjamin wrote:\n> As you say, this seems orthogonal to ECH. \n\nI'm not so sure. ECH gives the client more information as it\nidentifies a DH group that the frontend implements and that\nthe backend knows about. That allows us to e.g. state that\nif all 3 support key shares with that group then HRR ought\nnot happen. We can also avoid a potential leak if the\nserver-chosen key share group didn't have a key share in the\nouter CH, but only in the inner, e.g. by saying \"don't do\nthat\":-)\n\nI'd also argue that there are some similar statements we\ncould make about potential leaks, e.g. pointing out that if\nthe server-chosen ciphersuite is in both inner and outer CH\nthen we avoid a possible leak.\n\nMaybe a \"footguns to avoid\" section in the spec?\n\n> I suspect anything we do\n> here will want to be separate work, where we can give it the time it\n> deserves. (Should be solvable, but I'd want us to work through the\n> downgrade implications.)\n\nSounds fair. Though I think I'd prefer we (try to) stick to\nguidance and not further complicate SVCB if that's at all\npossible.\n\nCheers,\nS.\n\n> \n",
+          "createdAt": "2021-06-03T22:08:44Z",
+          "updatedAt": "2021-06-03T22:08:44Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> I'm not so sure. ECH gives the client more information as it\r\nidentifies a DH group that the frontend implements and that\r\nthe backend knows about. \r\n\r\nThe HPKE group is not necessarily the same as the TLS group, for better or worse, so it's not clear to me that one can infer the backend supports x25519 _for TLS_ just because the client-facing server supports the x25519-based DHKEM.",
+          "createdAt": "2021-06-03T22:10:32Z",
+          "updatedAt": "2021-06-03T22:10:32Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 03/06/2021 23:10, Christopher Wood wrote:\n>> I'm not so sure. ECH gives the client more information as it\n> identifies a DH group that the frontend implements and that the\n> backend knows about.\n> \n> The HPKE group is not necessarily the same as the TLS group, for\n> better or worse, so it's not clear to me that one can infer the\n> backend supports x25519 _for TLS_ just because the client-facing\n> server supports the x25519-based DHKEM.\n\nSure. But we can say that if they do all support it, then\nHRR isn't likely (I think), and maybe even RECOMMEND that\nservers try ensure that's the case?\n\nUntil we hit the fun of hybrid PQC stuff, that ought be\nfairly easy for a lot of servers to do, and tooling could\nbe developed to check it works ok, e.g. while setting up\nECH and rolling keys. I'm sure there'd be issues with load\nbalancing and out-of-whack server configs, but we can still\nsay that it's a better setup I hope.\n\nS.\n\n",
+          "createdAt": "2021-06-03T22:16:20Z",
+          "updatedAt": "2021-06-03T22:16:20Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Indeed our implementation supports a bunch of NIST curves for TLS due to TLS's long legacy, but we have no plans to support them in ECH. We _already_ support a hybrid PQC group in TLS (CECPQ2), but we are not yet putting it in ECH and HPKE. (Someday, maybe, but those keys are kinda big and there are enough problems to solve with ECH as it is.)\r\n\r\nThe configurations also have very different deployment characteristics. ECH groups come from ECH keys, which are long-lived and integrated into a whole key rotation, DNS, and TLS config pipeline. TLS groups can be changed unilaterally be a single server instance with no coordination elsewhere in the fleet. Moreover, in Split Mode ECH, the ECH keys are a property of the client-facing server, while the TLS configuration is a property of the backend server. These two may have nothing to do with each other.\r\n\r\nDivining TLS configuration directly from ECH keys is really a non-starter.",
+          "createdAt": "2021-06-03T22:30:42Z",
+          "updatedAt": "2021-06-03T22:31:51Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 03/06/2021 23:30, David Benjamin wrote:\n> Divining TLS configuration directly from ECH keys is really a non-starter.\n\nWell, \"divining\" is a slightly pejorative term here though.\n\nI think there are likely to be many setups where its entirely\npractical to ensure the ECH group works for all relevant TLS\nservers and don't see why we ought not recommend that that\nbe done where possible.\n\nI'm sure in the most complex cases of the biggest fleets it's\nharder than for a small hoster, but I'd argue we ought try do\nour best for the latter as well as the former.\n\nS.\n\n",
+          "createdAt": "2021-06-03T22:36:13Z",
+          "updatedAt": "2021-06-03T22:36:13Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "NSS has a similar to what @davidben describes.  We have no plan to support P-256 in HPKE, for instance.  PQ support is very much TBD as well, but I expect one to move independent of the other.\r\n\r\nThe only option I see here is an extension to ECH configurations that signals group support.  But I mostly don't want to have extensions.  The existing measures we use for avoiding HRR are working and I see no reason to fortify those.",
+          "createdAt": "2021-06-03T22:37:27Z",
+          "updatedAt": "2021-06-03T22:37:27Z"
+        },
+        {
+          "author": "ekr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I also do not believe we should do anything as part of ECH, for several\nreasons.\n\nFirst, it's unnecessary to deploy ECH.  Given that we're going to have HRR,\nwe have to bear that design burden anyway.\n\nSecond, it's orthogonal in the sense that one might want to have group\nsignaling w/o ECH, even if you used the same record.\n\nThird, it's not necessarily straightforward to design a mechanism like this\nwithout introducing downgrade attacks. Recall that ECHConfig is not\nauthenticated and so any signal received is untrustworthy. As a concrete\nexample, in the current design, each ECH key is a separate ECHConfig, and\nthe server has no way of knowing the entire set of keys the client saw. So\nwhat happens if the client and server both have the preference order A, B\nfor both ECH and TLS key establishment and the attacker strips A from\nECHConfig. If the client relies on this, you will end up with B, even\nthough TLS 1.3 would normally negotiate A. It's possible you can fix this,\nfor instance by folding the entire set of ECHConfigs into the transcript,\nbut the point here is that this needs real design and analysis, and it\nwould be inappropriate to recommend that clients us ECH as a hint absent\nthat analysis.\n\nAs MT notes, this seems like a natural place for extensions.\n\n-Ekr\n\n\nOn Thu, Jun 3, 2021 at 3:37 PM Martin Thomson ***@***.***>\nwrote:\n\n> NSS has a similar to what @davidben <https://github.com/davidben>\n> describes. We have no plan to support P-256 in HPKE, for instance. PQ\n> support is very much TBD as well, but I expect one to move independent of\n> the other.\n>\n> The only option I see here is an extension to ECH configurations that\n> signals group support. But I mostly don't want to have extensions. The\n> existing measures we use for avoiding HRR are working and I see no reason\n> to fortify those.\n>\n> \u2014\n> You are receiving this because you were mentioned.\n> Reply to this email directly, view it on GitHub\n> <https://github.com/tlswg/draft-ietf-tls-esni/issues/440#issuecomment-854230605>,\n> or unsubscribe\n> <https://github.com/notifications/unsubscribe-auth/AAIPLII5MBJUEFUGNNK37HLTQ773HANCNFSM46BQDQQA>\n> .\n>\n",
+          "createdAt": "2021-06-04T13:07:36Z",
+          "updatedAt": "2021-06-04T13:07:36Z"
+        }
+      ]
+    },
+    {
+      "number": 441,
+      "id": "MDU6SXNzdWU5MTA4NTAwNDY=",
+      "title": "Reconsider non-HRR ECH acceptance signal",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/441",
+      "state": "OPEN",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Currently, we reuse some bytes of SH.random to signal ECH acceptance when HRR does not occur. Based on [discussion within the context of the HRR design team](https://github.com/tlswg/draft-ietf-tls-esni/wiki/HRR-Design-Team), it may be fruitful to reconsider where this signal goes. Should it in a cleartext extension? Note that this was previously discussed in the context of the original [trial decryption issue](https://github.com/tlswg/draft-ietf-tls-esni/issues/274). It may be worth revisiting this signal's placement as it pertains to the longterm viability of HRR. \r\n\r\ncc @sftcd, @ekr, @martinthomson, @davidben, @cjpatton ",
+      "createdAt": "2021-06-03T21:01:35Z",
+      "updatedAt": "2021-06-03T21:01:35Z",
       "closedAt": null,
       "comments": []
     }
@@ -40389,7 +40485,7 @@
       "labels": [],
       "body": "Currently we distinguish between CHI and CHO by sending \"ech_is_inner\"\r\nin CHI and \"encrypted_client_hello\" in CHO. A future change will signal\r\nECH acceptance in HRR using the \"encrypted_client_hello\" codepoint. This\r\nwould violate 8446's rule that disallows unsolicited extensions. In\r\npreparation for this change, this commit removes the \"ech_is_inner\"\r\nextension and adds a byte to the payload of \"encrypted_client_hello\"\r\nthat signals to the server whether the message is CHI or CHO.",
       "createdAt": "2021-04-15T22:37:44Z",
-      "updatedAt": "2021-05-21T15:59:08Z",
+      "updatedAt": "2021-06-04T14:14:38Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
@@ -40663,6 +40759,19 @@
               "updatedAt": "2021-05-21T15:59:08Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2MzMyMTYx",
+          "commit": {
+            "abbreviatedOid": "a8a7c0a"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-04T14:14:38Z",
+          "updatedAt": "2021-06-04T14:14:38Z",
+          "comments": []
         }
       ]
     },
@@ -40678,7 +40787,7 @@
       "labels": [],
       "body": "Based on #422 (review that first!).\r\n\r\nIf an HRR is sent in response to CH, the client doesn't know whether ECH\r\nwas accepted. As a result, it doesn't know whether it's CHI or CHO that\r\nneeds to be updated. The spec attempts to address this ambiguity by\r\nrequiring that all HRR-sensitive parameters are the same in CHI and CHO.\r\nThis criterion is currently underspecified, and it's not clear how to\r\nmake sure that future extensions don't violate it. (See issue #374.)\r\n\r\nThis change solves this ambiguity by adding an explicit signal of ECH\r\nacceptance to HRR. This violates \"don't stick out\" whenever an HRR is\r\ninevitable for a particular client and server configuration. However,\r\nthis change is designed to prevent an active attacker from\r\ndistinguishing real ECH from GREASE ECH by triggering HRR.\r\n\r\nCloses #374 by providing an alternative to PR #407.\r\nCloses #373.\r\nCloses #358.\r\n\r\n",
       "createdAt": "2021-04-15T23:51:53Z",
-      "updatedAt": "2021-05-14T18:18:33Z",
+      "updatedAt": "2021-06-04T14:36:07Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
@@ -40952,6 +41061,58 @@
               "body": "(The `Msg1...MsgN` syntax doesn't mean what I think it means. Per @martinthomson's comment, say how we change Section 4.4.1 of 8446. Need to fix this in the SH.random signal as well.)",
               "createdAt": "2021-05-11T20:19:26Z",
               "updatedAt": "2021-05-11T20:23:01Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2MzM4NjQ2",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "I'm OK with this change, with one exception: I think we should grease the rejection path so that there's no obvious distinguisher as to whether ECH was accepted or rejected in the presence of HRR.",
+          "createdAt": "2021-06-04T14:20:09Z",
+          "updatedAt": "2021-06-04T14:31:56Z",
+          "comments": [
+            {
+              "originalPosition": 166,
+              "body": "```suggestion\r\nhandles the HelloRetryRequest using ClientHelloOuter. \r\n```\r\n\r\nI thought the intent was to grease this in the case of rejection to ensure the extension is always present -- am I misremembering? @davidben, do you remember? (This would require us to add new text to the client-facing server section on what to do when it rejects but sends HRR, which we currently don't have.) ",
+              "createdAt": "2021-06-04T14:20:09Z",
+              "updatedAt": "2021-06-04T14:31:56Z"
+            },
+            {
+              "originalPosition": 315,
+              "body": "This seems like a more verbose description of the hash than what was there previously. Why the change?",
+              "createdAt": "2021-06-04T14:23:01Z",
+              "updatedAt": "2021-06-04T14:31:56Z"
+            },
+            {
+              "originalPosition": 359,
+              "body": "```suggestion\r\nbytes. It then computes the transcript has for the first ClientHelloInner, denoted ClientHelloInner1, up to and\r\n```\r\n\r\n(`ClientHelloInner1` isn't defined anywhere)",
+              "createdAt": "2021-06-04T14:28:50Z",
+              "updatedAt": "2021-06-04T14:31:56Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2MzU1Mzc0",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T14:36:07Z",
+          "updatedAt": "2021-06-04T14:36:07Z",
+          "comments": [
+            {
+              "originalPosition": 328,
+              "body": "What did you think it meant? The syntax seems pretty clear (to me) -- it's a sequence of messages. Is the problem that the sequence of messages is not clear? Should we just be explicit and list all messages, rather than just assume the reader can figure it out? That is, instead of:\r\n\r\n`ClientHelloInner...ServerHelloECHConf`\r\n\r\nsay\r\n\r\n`ClientHelloInner || ServerHelloECHConf`\r\n\r\nin the happy path, and, e.g., \r\n\r\n`ClientHelloInner1 || HelloRetryRequest || ClientHelloInner2 || ServerHelloECHConf`\r\n\r\nin the HRR+ECH-accept path?\r\n",
+              "createdAt": "2021-06-04T14:36:07Z",
+              "updatedAt": "2021-06-04T14:36:07Z"
             }
           ]
         }
@@ -41468,13 +41629,13 @@
       "labels": [],
       "body": "This is yet another option to deal with public_name encoding, reference identity, and ClientHelloOuter construction issues. \r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd ",
       "createdAt": "2021-05-26T19:42:47Z",
-      "updatedAt": "2021-06-02T22:57:39Z",
+      "updatedAt": "2021-06-04T14:37:02Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
+      "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/prohibit-ips",
-      "headRefOid": "74d8cb5ccf045de52d709dc7bd5d9ed34f6d9d02",
+      "headRefOid": "76abb4fc03509161c964485bb1c7b86ddeeeda0c",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -41605,6 +41766,13 @@
           "body": "Given that I've already written the code, there is a bit of sunk-cost that influences my thinking now...  \r\n\r\nThat said, I am thinking that the worst that can happen here if someone gets this wrong.  We get either:\r\n\r\n* an ECH configuration is ignored because we falsely believe that it is an IP address\r\n* a bad ECH configuration with an IP address is used because we falsely believe that it is a DNS name\r\n\r\nFor the former, if this happens, then we might not use ECH when we could.  That's not great, but we might get bug reports and can fix the parser (or people can use better names).\r\n\r\nFor the latter, we will put an IP in SNI and maybe the IP will make it as far as certificate validation.  If the server has a valid IP certificate for that address, then maybe it just works.  Maybe the server chokes on the SNI.  Maybe the client code chokes on the bizarre IP address and fails (this is what moz::pkix would do, it is picky about the format of addresses as it assumes that the caller normalizes them).  If the server doesn't have a valid certificate, then the connection fails.\r\n\r\nIn this latter case, it seems like failure to validate the ECH config correctly more often leads to connection failures.  That suggests that the SHOULD is worthwhile, because we don't want some clients connecting and others failing to connect.\r\n\r\nCarrick is right to point to our collective differences, but I see that as unhealthy rather than inevitable.  We should fix the underscore thing by updating specifications to match reality (Anne van Kesteren is right about this...again), but I know the IETF well enough to be wary of proposing that, even if it would be the right thing to do.  I do think that the suggestion to reuse existing parsers is sensible.\r\n\r\nSo I'm down for making this change with a \"SHOULD\" in place of the \"MUST\".",
           "createdAt": "2021-06-02T22:57:38Z",
           "updatedAt": "2021-06-02T22:57:38Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "OK, I downgraded to a SHOULD and made an attempt at clarifying risk without being overly verbose. @davidben, @martinthomson, please have a look! @sftcd, would this current framing work for your implementation? (It seems like it would, especially if the amount of parsing is to be minimized.)",
+          "createdAt": "2021-06-03T21:32:48Z",
+          "updatedAt": "2021-06-03T21:36:07Z"
         }
       ],
       "reviews": [
@@ -41807,6 +41975,58 @@
               "updatedAt": "2021-05-31T00:07:51Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc1Nzg0NTUx",
+          "commit": {
+            "abbreviatedOid": "d978569"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-03T22:30:27Z",
+          "updatedAt": "2021-06-03T22:33:41Z",
+          "comments": [
+            {
+              "originalPosition": 41,
+              "body": "```suggestion\r\nvalue when the input is an IPv4 address.) Failure to validate that a public_name\r\n```",
+              "createdAt": "2021-06-03T22:30:27Z",
+              "updatedAt": "2021-06-03T22:33:41Z"
+            },
+            {
+              "originalPosition": 45,
+              "body": "\"to the same name\" might be tricky - if there is a disagreement about whether the name is an IP or DNS name.\r\n\r\nHow about:\r\n\r\n```suggestion\r\nserver. However, it is not expected to induce security failures. Clients will\r\nfail closed if the client-facing server cannot produce a certificate bound\r\nto the a reference identity based on the public_name.\r\n```",
+              "createdAt": "2021-06-03T22:31:54Z",
+              "updatedAt": "2021-06-03T22:33:41Z"
+            },
+            {
+              "originalPosition": 62,
+              "body": "```suggestion\r\nspecifying otherwise.\r\n```",
+              "createdAt": "2021-06-03T22:33:32Z",
+              "updatedAt": "2021-06-03T22:33:41Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc1NzkxNzUx",
+          "commit": {
+            "abbreviatedOid": "b054fd8"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-03T22:46:52Z",
+          "updatedAt": "2021-06-03T22:46:52Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "Much better!",
+              "createdAt": "2021-06-03T22:46:52Z",
+              "updatedAt": "2021-06-03T22:46:52Z"
+            }
+          ]
         }
       ]
     },
@@ -41907,7 +42127,7 @@
       "labels": [],
       "body": "One of the motivations for encrypting HRR in #407 was the leaks from cookie values. If we don't go with such a construction (which seems likely) and instead do #417 or #422, cookies will be in the clear. That means it is instead on the backend servers to construct cookie values without leaking information. This PR provides security considerations to that effect.\r\n\r\nUnfortunately the requirements on backend servers within a Split Mode deployment are a bit onerous. I suspect, in practice, the answer is that Split Mode deployments cannot even use cookies on the backend server. Between HRRs being rare and stateless HRR being unnecessary over TCP or QUIC, that's hopefully fine. (Note this is different from #418, which was about the *client-facing* server being stateless. This applies if the *backend* server is stateless.)",
       "createdAt": "2021-05-29T17:37:46Z",
-      "updatedAt": "2021-05-29T17:37:46Z",
+      "updatedAt": "2021-06-04T16:54:49Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
@@ -41919,7 +42139,444 @@
       "mergedBy": null,
       "mergeCommit": null,
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NDkzNDMz",
+          "commit": {
+            "abbreviatedOid": "5c1db4f"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "\ud83d\udc4d We can probably safely assume #422 will land and make the suggested edit.",
+          "createdAt": "2021-06-04T16:54:49Z",
+          "updatedAt": "2021-06-04T16:54:49Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 442,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjYxMzk1MDc2",
+      "title": "Preserve length prefixes in ClientHelloOuterAAD",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/442",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "After having written so many variations of ClientHelloOuterAAD construction (client and server, test and production), I think this may be simpler. A little bit less ClientHello rewriting. The cost is predicting the payload length on the client (same as PSK binders), but that prediction is just adding the tag length to len(EncodedClientHelloInner). The server, in particular, needs to parse and then re-encode an arbitrary incoming ClientHelloOuter with transforms.\r\n\r\nThoughts?",
+      "createdAt": "2021-06-04T02:54:47Z",
+      "updatedAt": "2021-06-04T18:09:46Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "aad-zeros",
+      "headRefOid": "9ae83580d34b46865444de2a2b660957e697876d",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> Did I miss the rationale for not including the HPKE parameters? I know that some of these are in HPKE and so they are redundant here, but they are encoded in the e_c_h extension, so maybe there is a different spelling of this that only drops/zeros-out the encrypted portion.\r\n\r\nThat's exactly what this PR does. `payload` is the encrypted portion. (The whole extension body is `extension_data` in RFC8446. Guessing that was the disconnect?)",
+          "createdAt": "2021-06-04T03:30:48Z",
+          "updatedAt": "2021-06-04T03:30:48Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Ah, precise terminology is useful up until the point that you aren't intimately familiar with each and every term.  That would be OK, but as I said, it's not an improvement for us.",
+          "createdAt": "2021-06-04T03:31:57Z",
+          "updatedAt": "2021-06-04T03:31:57Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Hehe. I'm mostly hoping it'd tidy up the server side. When you decide to do ECH, you've already got to have parsed the ClientHello and found the ECH extension. Instead of going back, trimming out the ECH extension, preserving the surrounding extensions, and then updating the extensions length prefix, you can just take the offset of the payload field you just found, zero that and leave the rest alone.",
+          "createdAt": "2021-06-04T03:40:31Z",
+          "updatedAt": "2021-06-04T03:40:31Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Yeah, if it is a server-side improvement (we don't heavily optimize any of this stuff, so we don't care much), then I won't stand in the way.",
+          "createdAt": "2021-06-04T03:49:27Z",
+          "updatedAt": "2021-06-04T03:49:27Z"
+        },
+        {
+          "author": "briansmith",
+          "authorAssociation": "NONE",
+          "body": "The benefit of this change, IIRC, is that you don't need to reserialize anything. But the new proposed text still talks about reserializing. It would be good to find a way to reword it so it doesn't imply that reserialization is needed.",
+          "createdAt": "2021-06-04T18:09:46Z",
+          "updatedAt": "2021-06-04T18:09:46Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc1ODg4MjM3",
+          "commit": {
+            "abbreviatedOid": "9ae8358"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "This wouldn't be easier for us to implement; we insert the extension.  Yes, with `memmove()`.  We use extension insertion in a few places (padding), so it's not that difficult.\r\n\r\nIt's doable, and not that much more work to do it this way.\r\n\r\nDid I miss the rationale for not including the HPKE parameters?  I know that some of these are in HPKE and so they are redundant here, but they are encoded in the e_c_h extension, so maybe there is a different spelling of this that only drops/zeros-out the encrypted portion.",
+          "createdAt": "2021-06-04T03:25:55Z",
+          "updatedAt": "2021-06-04T03:25:55Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2MzU5Mjg4",
+          "commit": {
+            "abbreviatedOid": "9ae8358"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "I've no strong preference here. This folds the same data into the AAD, just differently, so if it's easier to implement, \ud83d\udc4d ",
+          "createdAt": "2021-06-04T14:39:59Z",
+          "updatedAt": "2021-06-04T14:39:59Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 443,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjYxNDEyODgx",
+      "title": "Move ClientHello padding to the encoding.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/443",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #433. This PR does four things:\r\n\r\n1. Apply the EncodedClientHelloInner change suggested in #433.\r\n\r\n2. Adjust the recommended padding scheme to round the overall length to\r\n   a multiple of 32, now that this is fairly easy to compute.\r\n\r\n3. It fixes an mistake in the recommended padding scheme. The server\r\n   sets maximum_name_length to the longest *name*, but the client\r\n   computes padding based on the server_name *extension*. We're\r\n   miscounting 7 bytes of extension overhead and effectively are using\r\n   maximum_name_length - 7 instead of maximum_name_length.\r\n\r\n4. It defines what to do if you aren't sending SNI. While unlikely to\r\n   happen in practice (no way to get an ECHConfig), implementations will\r\n   need to handle this. The application may well call SetECHConfigList()\r\n   without SetServerName() and it's rude to crash. It's pretty obvious what\r\n   to do, so just define it.\r\n\r\n(If folks would rather the PR only do a subset of these, I can defer the more controversial bits to other PRs. They all touched the same text, so it was easier to just do them all.)",
+      "createdAt": "2021-06-04T03:28:07Z",
+      "updatedAt": "2021-06-04T18:21:47Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "encoded-padding",
+      "headRefOid": "e5674773c8ccaeed7fab676105cdc8ed9245f576",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> This isn't how I had planned to implement this, but it seems preferable. Mostly because the padding calculation is clearer. I had planned to do much the same as this, but with a padding extension. This is less fuss.\r\n\r\nYeah, I'd actually already implemented the draft-10 construction, but I prefer this one. As you say, less fuss, especially if you want to do whole-message rounding. I also prefer rounding to a multiple of 32 at the end. If we decrease the range of possible values, it's easier to GREASE.",
+          "createdAt": "2021-06-04T03:47:34Z",
+          "updatedAt": "2021-06-04T03:47:34Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc1ODkxMjE1",
+          "commit": {
+            "abbreviatedOid": "676de47"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "This isn't how I had planned to implement this, but it seems preferable.  Mostly because the padding calculation is clearer.  I had planned to do much the same as this, but with a padding extension.  This is less fuss.\r\n\r\n...If only HPKE had padding.",
+          "createdAt": "2021-06-04T03:35:24Z",
+          "updatedAt": "2021-06-04T03:37:46Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "This would be easier if this wasn't length-prefixed.  Every padding scheme that ever used length has caused a lot of pain.  I realize that this isn't necessarily security-critical, but just extending with zeros should be easier to implement AND you don't have two extra bytes of overhead.",
+              "createdAt": "2021-06-04T03:35:24Z",
+              "updatedAt": "2021-06-04T03:37:46Z"
+            },
+            {
+              "originalPosition": 70,
+              "body": "```suggestion\r\n2. If the ClientHelloInner did not contain a \"server_name\" extension (e.g., if\r\n```",
+              "createdAt": "2021-06-04T03:36:05Z",
+              "updatedAt": "2021-06-04T03:37:46Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc1ODkyNDY5",
+          "commit": {
+            "abbreviatedOid": "676de47"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T03:39:34Z",
+          "updatedAt": "2021-06-04T03:39:35Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "Works for me. Since every TLS structure is self-delimiting, we can just append stuff. It shifts some work from presentation language to prose, but I agree that it's easier to implement.",
+              "createdAt": "2021-06-04T03:39:35Z",
+              "updatedAt": "2021-06-04T03:39:35Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc1ODk0MDQ1",
+          "commit": {
+            "abbreviatedOid": "308e703"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T03:45:00Z",
+          "updatedAt": "2021-06-04T03:45:01Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "Done. I kinda cheated a bit around the presentation language, but hopefully that's clear enough?",
+              "createdAt": "2021-06-04T03:45:01Z",
+              "updatedAt": "2021-06-04T03:45:01Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc1ODk1MDQy",
+          "commit": {
+            "abbreviatedOid": "308e703"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T03:48:04Z",
+          "updatedAt": "2021-06-04T03:48:04Z",
+          "comments": [
+            {
+              "originalPosition": 20,
+              "body": "```suggestion\r\nNote this field uses the ClientHello structure, defined in {{Section 4.1.2\r\nof RFC8446}} which does not include the Handshake structure's four byte\r\n```",
+              "createdAt": "2021-06-04T03:48:04Z",
+              "updatedAt": "2021-06-04T03:48:04Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NDgyMDc4",
+          "commit": {
+            "abbreviatedOid": "308e703"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T16:40:24Z",
+          "updatedAt": "2021-06-04T16:50:33Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "```suggestion\r\nClientHelloInner and sets the `legacy_session_id` field to an empty string.\r\n```",
+              "createdAt": "2021-06-04T16:40:24Z",
+              "updatedAt": "2021-06-04T16:50:33Z"
+            },
+            {
+              "originalPosition": 21,
+              "body": "```suggestion\r\nheader. The `padding` field MUST be all zeroes.\r\n```",
+              "createdAt": "2021-06-04T16:45:43Z",
+              "updatedAt": "2021-06-04T16:50:33Z"
+            },
+            {
+              "originalPosition": 39,
+              "body": "Should we require the server check that padding is all zeroes?",
+              "createdAt": "2021-06-04T16:46:30Z",
+              "updatedAt": "2021-06-04T16:50:33Z"
+            },
+            {
+              "originalPosition": 82,
+              "body": "```suggestion\r\nThis rounds the length of EncodedClientHelloInner up to a multiple of 32 bytes,\r\nreducing lengths of this structure across all clients.\r\n```",
+              "createdAt": "2021-06-04T16:50:25Z",
+              "updatedAt": "2021-06-04T16:50:33Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NDkwMzcx",
+          "commit": {
+            "abbreviatedOid": "308e703"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM pending one question about server-side checks for all-zero padding.",
+          "createdAt": "2021-06-04T16:50:56Z",
+          "updatedAt": "2021-06-04T16:50:56Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NTM0OTU5",
+          "commit": {
+            "abbreviatedOid": "308e703"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T17:50:20Z",
+          "updatedAt": "2021-06-04T17:50:20Z",
+          "comments": [
+            {
+              "originalPosition": 20,
+              "body": "YOU CAN DO THAT?!?!!? Wow, I need to go update all my documents now.",
+              "createdAt": "2021-06-04T17:50:20Z",
+              "updatedAt": "2021-06-04T17:50:20Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NTM2Njgw",
+          "commit": {
+            "abbreviatedOid": "308e703"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T17:52:38Z",
+          "updatedAt": "2021-06-04T17:52:38Z",
+          "comments": [
+            {
+              "originalPosition": 82,
+              "body": "Agreed on the first half. I worry \"reducing lengths\" reads like making the lengths smaller. I guess \"range of lengths\" also has a different meaning... I was thinking the range of a function. :-)\r\n\r\nHow about \"reducing the set of possible lengths across all clients\".",
+              "createdAt": "2021-06-04T17:52:38Z",
+              "updatedAt": "2021-06-04T17:52:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NTM4OTc2",
+          "commit": {
+            "abbreviatedOid": "19eeda9"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T17:55:44Z",
+          "updatedAt": "2021-06-04T17:55:45Z",
+          "comments": [
+            {
+              "originalPosition": 82,
+              "body": "That works for me too \ud83d\udc4d ",
+              "createdAt": "2021-06-04T17:55:45Z",
+              "updatedAt": "2021-06-04T17:55:45Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NTU3OTM0",
+          "commit": {
+            "abbreviatedOid": "e567477"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T18:21:33Z",
+          "updatedAt": "2021-06-04T18:21:33Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "Done, though s/sets/setting/",
+              "createdAt": "2021-06-04T18:21:33Z",
+              "updatedAt": "2021-06-04T18:21:33Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NTU4MDUz",
+          "commit": {
+            "abbreviatedOid": "e567477"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T18:21:42Z",
+          "updatedAt": "2021-06-04T18:21:42Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "Sure. Done.",
+              "createdAt": "2021-06-04T18:21:42Z",
+              "updatedAt": "2021-06-04T18:21:42Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NTU4MTA4",
+          "commit": {
+            "abbreviatedOid": "e567477"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T18:21:47Z",
+          "updatedAt": "2021-06-04T18:21:47Z",
+          "comments": [
+            {
+              "originalPosition": 82,
+              "body": "Done.",
+              "createdAt": "2021-06-04T18:21:47Z",
+              "updatedAt": "2021-06-04T18:21:47Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 444,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjYyMDE0NjM0",
+      "title": "Allow empty enc in ClientECH.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/444",
+      "state": "MERGED",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The second ClientHello after HelloRetryRequest reuses the HPKE context\r\nand calls Seal/Open a second time. To avoid needing to unnecessarily\r\nretain the enc value, and discourage servers from mistakenly recreating\r\nthe HPKE context, we made it use the empty string but forgot to update\r\nthe syntax to match.",
+      "createdAt": "2021-06-04T19:49:48Z",
+      "updatedAt": "2021-06-04T20:44:52Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "empty-enc",
+      "headRefOid": "7575bb2339b5d51126609fe36e14245519d39de7",
+      "closedAt": "2021-06-04T20:44:52Z",
+      "mergedAt": "2021-06-04T20:44:52Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "69211578de6a173e9531baff2761176c4c7da1bc"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NjUxMTQ4",
+          "commit": {
+            "abbreviatedOid": "7575bb2"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-04T20:44:40Z",
+          "updatedAt": "2021-06-04T20:44:40Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
