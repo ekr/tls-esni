@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 5 December 2021                                          Fastly
+Expires: 6 December 2021                                          Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                             3 June 2021
+                                                             4 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 5 December 2021.
+   This Internet-Draft will expire on 6 December 2021.
 
 Copyright Notice
 
@@ -429,7 +429,7 @@ Table of Contents
        struct {
           HpkeSymmetricCipherSuite cipher_suite;
           uint8 config_id;
-          opaque enc<1..2^16-1>;
+          opaque enc<0..2^16-1>;
           opaque payload<1..2^16-1>;
        } ClientECH;
 
@@ -441,7 +441,8 @@ Table of Contents
       "ECHConfigContents.cipher_suites" list.
 
    enc  The HPKE encapsulated key, used by servers to decrypt the
-      corresponding "payload" field.
+      corresponding "payload" field.  This field is empty in
+      ClientHelloOuters sent in response to HelloRetryRequest.
 
    payload  The serialized and encrypted ClientHelloInner structure,
       encrypted using HPKE as described in Section 6.1.
