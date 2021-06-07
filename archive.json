@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-07T13:40:08.565961+00:00",
+  "timestamp": "2021-06-07T23:45:50.686079+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10560,10 +10560,12 @@
       "author": "sayrer",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
-      "labels": [],
+      "labels": [
+        "editorial"
+      ],
       "body": "From the section on ECH configuration extensions: \"Clients MUST parse the extension list and check for unsupported mandatory extensions. If an unsupported mandatory extension is present, clients MUST ignore the ECHConfig.\"\r\n\r\nIs there an always-invalid extension specified for testing? This section references RFC8446, so maybe I'm missing something in that RFC.",
       "createdAt": "2021-05-27T23:43:56Z",
-      "updatedAt": "2021-05-27T23:45:21Z",
+      "updatedAt": "2021-06-07T14:18:16Z",
       "closedAt": null,
       "comments": []
     },
@@ -10653,6 +10655,62 @@
       "body": "Currently, we reuse some bytes of SH.random to signal ECH acceptance when HRR does not occur. Based on [discussion within the context of the HRR design team](https://github.com/tlswg/draft-ietf-tls-esni/wiki/HRR-Design-Team), it may be fruitful to reconsider where this signal goes. Should it in a cleartext extension? Note that this was previously discussed in the context of the original [trial decryption issue](https://github.com/tlswg/draft-ietf-tls-esni/issues/274). It may be worth revisiting this signal's placement as it pertains to the longterm viability of HRR. \r\n\r\ncc @sftcd, @ekr, @martinthomson, @davidben, @cjpatton ",
       "createdAt": "2021-06-03T21:01:35Z",
       "updatedAt": "2021-06-03T21:01:35Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 448,
+      "id": "MDU6SXNzdWU5MTM3NzQ3MzE=",
+      "title": "Acceptance signal may not be pseudorandom",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/448",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "We currently use the all-zero string as the PRK input of KDF-Expand-Label(). This usage of this function isn't generically safe, as PRK is required to be pseudorandom (see RFC5869). In particular, although the transcript contains a pseudorandom string  (ClientHelloInner.random), passing the hash of the transcript as the info string may not be sufficient to guarantee that the output OKM is pseudorandom (or even unpredictable).",
+      "createdAt": "2021-06-07T17:15:41Z",
+      "updatedAt": "2021-06-07T17:59:59Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Here's the change that I think is appropriate: #449. Note that this matches what we had in draft-08.",
+          "createdAt": "2021-06-07T17:17:40Z",
+          "updatedAt": "2021-06-07T17:17:40Z"
+        }
+      ]
+    },
+    {
+      "number": 450,
+      "id": "MDU6SXNzdWU5MTM4MDcyNzg=",
+      "title": "Grease HRR acceptance signal?",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/450",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "With #423 we will send an explicit signal of whether ECH was accepted prior to HRR. The mechanism for this is an ECH extension sent by the backend server that contains a pseudorandom string derived from the inner handshake. We need to decide if/how to grease this extension.",
+      "createdAt": "2021-06-07T17:57:48Z",
+      "updatedAt": "2021-06-07T17:57:48Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 451,
+      "id": "MDU6SXNzdWU5MTM4NjEwMzI=",
+      "title": "Reserve some code points for GREASE",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/451",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "We should reserve a few extension and ECH version code points for GREASE (perhaps just the same ?a?a pattern). The reserved non-mandatory code points can just be included in valid ECHConfigs, to ensure clients ignore them. The mandatory ones and the reserved versions can be included in ECHConfigLists, to ensure clients can skip over them.",
+      "createdAt": "2021-06-07T18:50:42Z",
+      "updatedAt": "2021-06-07T18:50:42Z",
       "closedAt": null,
       "comments": []
     }
@@ -40485,18 +40543,26 @@
       "labels": [],
       "body": "Currently we distinguish between CHI and CHO by sending \"ech_is_inner\"\r\nin CHI and \"encrypted_client_hello\" in CHO. A future change will signal\r\nECH acceptance in HRR using the \"encrypted_client_hello\" codepoint. This\r\nwould violate 8446's rule that disallows unsolicited extensions. In\r\npreparation for this change, this commit removes the \"ech_is_inner\"\r\nextension and adds a byte to the payload of \"encrypted_client_hello\"\r\nthat signals to the server whether the message is CHI or CHO.",
       "createdAt": "2021-04-15T22:37:44Z",
-      "updatedAt": "2021-06-05T01:44:14Z",
+      "updatedAt": "2021-06-07T17:35:13Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
+      "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "hrr-inner-2",
-      "headRefOid": "a8a7c0a77b8d0090d3d14f529043fe21032acdcf",
+      "headRefOid": "6cf48818f23455cc9a563db709622eceea4b01fe",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Rebased and squashed.",
+          "createdAt": "2021-06-07T17:35:13Z",
+          "updatedAt": "2021-06-07T17:35:13Z"
+        }
+      ],
       "reviews": [
         {
           "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjM3Nzg0OTk2",
@@ -40800,18 +40866,26 @@
       "labels": [],
       "body": "Based on #422 (review that first!).\r\n\r\nIf an HRR is sent in response to CH, the client doesn't know whether ECH\r\nwas accepted. As a result, it doesn't know whether it's CHI or CHO that\r\nneeds to be updated. The spec attempts to address this ambiguity by\r\nrequiring that all HRR-sensitive parameters are the same in CHI and CHO.\r\nThis criterion is currently underspecified, and it's not clear how to\r\nmake sure that future extensions don't violate it. (See issue #374.)\r\n\r\nThis change solves this ambiguity by adding an explicit signal of ECH\r\nacceptance to HRR. This violates \"don't stick out\" whenever an HRR is\r\ninevitable for a particular client and server configuration. However,\r\nthis change is designed to prevent an active attacker from\r\ndistinguishing real ECH from GREASE ECH by triggering HRR.\r\n\r\nCloses #374 by providing an alternative to PR #407.\r\nCloses #373.\r\nCloses #358.\r\n\r\n",
       "createdAt": "2021-04-15T23:51:53Z",
-      "updatedAt": "2021-06-05T01:45:40Z",
+      "updatedAt": "2021-06-07T17:59:19Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
+      "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "hrr-inner-2-main",
-      "headRefOid": "c4f84a7331e1d6c20edc78c10a1ee25093ff953c",
+      "headRefOid": "eceb7ebeba92ffc680265b3c7d42e8f419c0c8ba",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Rebased.",
+          "createdAt": "2021-06-07T17:52:37Z",
+          "updatedAt": "2021-06-07T17:52:37Z"
+        }
+      ],
       "reviews": [
         {
           "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjM3ODU4NDI3",
@@ -41239,6 +41313,112 @@
               "body": "If you drop `HKDF-Extract(0, ClientHelloInner.random)` above, presumably you should drop `HKDF-Extract(0, ClientHelloInner1.random)` too.",
               "createdAt": "2021-06-05T01:45:39Z",
               "updatedAt": "2021-06-05T01:45:40Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NTY1ODkx",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "@chris-wood, IIRC we didn't make a call about whether to grease the HRR acceptance signal. I suggest we leave it out of this PR and re-consider it later.",
+          "createdAt": "2021-06-07T15:27:03Z",
+          "updatedAt": "2021-06-07T15:35:03Z",
+          "comments": [
+            {
+              "originalPosition": 166,
+              "body": "I don't recall making a decision about this. I'd like to suggest we leave this change out of the current PR and leave an OPEN ISSUE for deciding whether to grease the HRR acceptance signal.",
+              "createdAt": "2021-06-07T15:27:04Z",
+              "updatedAt": "2021-06-07T15:35:03Z"
+            },
+            {
+              "originalPosition": 322,
+              "body": "Using `0` as the PRK isn't safe, since this value is supposed to be pseudorandom (see https://datatracker.ietf.org/doc/html/rfc5869). Assuming `ClientHelloInner.random` has entropy,  `HKDF-Extract(0, ClientHelloInner.random)` is pseudorandom. We might be able to get away with using `ClientHelloInner.random` as the PRK directly, if the client generates this value securely. Note that this is change matches what we had in draft-ietf-tls-esni-08.",
+              "createdAt": "2021-06-07T15:31:52Z",
+              "updatedAt": "2021-06-07T15:35:03Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjUxODc1",
+          "commit": {
+            "abbreviatedOid": "2de9a8b"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T16:41:13Z",
+          "updatedAt": "2021-06-07T16:41:14Z",
+          "comments": [
+            {
+              "originalPosition": 322,
+              "body": "HKDF is a dual-PRF, so the result is the same. We don't need to do this. ",
+              "createdAt": "2021-06-07T16:41:14Z",
+              "updatedAt": "2021-06-07T16:41:14Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjUzMzgx",
+          "commit": {
+            "abbreviatedOid": "2de9a8b"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T16:42:49Z",
+          "updatedAt": "2021-06-07T16:42:49Z",
+          "comments": [
+            {
+              "originalPosition": 166,
+              "body": "That works for me, then. Let's prep that PR to build on top of this, and flag this as an open issue.",
+              "createdAt": "2021-06-07T16:42:49Z",
+              "updatedAt": "2021-06-07T16:43:01Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjcyODc2",
+          "commit": {
+            "abbreviatedOid": "dd1f9f6"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:04:02Z",
+          "updatedAt": "2021-06-07T17:04:03Z",
+          "comments": [
+            {
+              "originalPosition": 322,
+              "body": "I don't think that's true. In any case, the change is orthogonal, so I'll move it to a separate PR.",
+              "createdAt": "2021-06-07T17:04:03Z",
+              "updatedAt": "2021-06-07T17:04:03Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NzI2MTU0",
+          "commit": {
+            "abbreviatedOid": "eceb7eb"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:59:18Z",
+          "updatedAt": "2021-06-07T17:59:19Z",
+          "comments": [
+            {
+              "originalPosition": 166,
+              "body": "Done.",
+              "createdAt": "2021-06-07T17:59:18Z",
+              "updatedAt": "2021-06-07T17:59:19Z"
             }
           ]
         }
@@ -41755,13 +41935,13 @@
       "labels": [],
       "body": "This is yet another option to deal with public_name encoding, reference identity, and ClientHelloOuter construction issues. \r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd ",
       "createdAt": "2021-05-26T19:42:47Z",
-      "updatedAt": "2021-06-04T22:49:31Z",
+      "updatedAt": "2021-06-07T16:48:57Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
+      "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/prohibit-ips",
-      "headRefOid": "6bbb1e223f0809d9bfd8a834b74f9e15af8cc159",
+      "headRefOid": "536afde3bd4d52cfbe3b5cd6c8f667f992244277",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -41906,6 +42086,55 @@
           "body": "> I worry we'll end up with a random mix of some TLS libraries doing a lot of work to reimplement the WHATWG algorithm (hopefully correctly!) and other libraries ignoring the text, depending on what they read between the lines of the SHOULD.\r\n\r\nI share this concern.  See my comment above about OpenSSL.",
           "createdAt": "2021-06-04T22:49:31Z",
           "updatedAt": "2021-06-04T22:49:31Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> we'll end up with a random mix of some TLS libraries doing a lot of work to reimplement the WHATWG algorithm (hopefully correctly!) and other libraries ignoring the text, depending on what they read between the lines of the SHOULD.\r\n\r\n@davidben, @richsalz: it's true, but this seems inevitable. (We could omit the reference entirely, and I could imagine stacks trying to implement a parser and verifier to abide by the SHOULD.) What's the downside of different libraries choosing to handle this SHOULD differently?",
+          "createdAt": "2021-06-07T13:44:31Z",
+          "updatedAt": "2021-06-07T13:44:31Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Paging @sftcd, @bemasc, and @cbartle891 for reviews!",
+          "createdAt": "2021-06-07T13:48:54Z",
+          "updatedAt": "2021-06-07T13:48:54Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": ">> we'll end up with a random mix of some TLS libraries doing a lot of work to reimplement the WHATWG algorithm (hopefully correctly!) and other libraries ignoring the text, depending on what they read between the lines of the SHOULD.\r\n>\r\n> @davidben, @richsalz: it's true, but this seems inevitable. (We could omit the reference entirely, and I could imagine stacks trying to implement a parser and verifier to abide by the SHOULD.) What's the downside of different libraries choosing to handle this SHOULD differently?\r\n\r\nI don't think this is inevitable. While https://github.com/tlswg/draft-ietf-tls-esni/pull/436#discussion_r640744959 (i.e. no requirement or recommendation here at all) punts the problem to the application, it punts the problem consistently. The application can then use the parser they already have. Especially since we seem to agree it won't cause security problems, it seems we should just stick with TLS not having an opinion, with non-normative text to point out this means DNS name.\r\n\r\nThe downside of libraries choosing to handle the SHOULD differently is that the ecosystem behaves differently. We'd have to consider both kinds of stacks when reasoning about the protocol. It's also less clear for any given implementor what the right behavior would be. We seem to essentially be saying \"you can reimplement the WHATWG protocol, which is just code, or you do less work and skip it, so do you want more code or less code?\".\r\n\r\n(I'll go put together some text for the \"consistently punt it\" option, so there's something concrete here.)",
+          "createdAt": "2021-06-07T14:36:12Z",
+          "updatedAt": "2021-06-07T14:36:12Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> (I'll go put together some text for the \"consistently punt it\" option, so there's something concrete here.)\r\n\r\nI understand that the text can consistently punt the problem elsewhere, unlike what this PR does, but that doesn't mean implementations will consistently punt it. \r\n\r\nIn any case, if you could target your change against this PR to minimize deltas, that would be great. ",
+          "createdAt": "2021-06-07T14:39:15Z",
+          "updatedAt": "2021-06-07T14:39:15Z"
+        },
+        {
+          "author": "richsalz",
+          "authorAssociation": "NONE",
+          "body": ">  it seems we should just stick with TLS not having an opinion, with non-normative text to point out this means DNS name.\r\n\r\nWorks for me.\r\n",
+          "createdAt": "2021-06-07T15:31:29Z",
+          "updatedAt": "2021-06-07T15:31:29Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> (I'll go put together some text for the \"consistently punt it\" option, so there's something concrete here.)\r\n\r\nhttps://github.com/tlswg/draft-ietf-tls-esni/pull/447\r\n\r\n> In any case, if you could target your change against this PR to minimize deltas, that would be great.\r\n\r\nDone. I've also left comments on this PR for the incidental stuff I noticed while putting that together.",
+          "createdAt": "2021-06-07T15:38:22Z",
+          "updatedAt": "2021-06-07T15:38:22Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 07/06/2021 14:49, Christopher Wood wrote:\n> Paging @sftcd, @bemasc, and @cbartle891 for reviews!\n> \n\nAssuming I figured out the actual latest text, that\nseems fine to me, except that DNS names can end with\nan explicit dot, (which is always implicitly there)\nas I think I pointed out  before. I don't know if TLS\nstacks handle that well or badly but we should probably\neither allow the trailing dot, or, if disallowing it\nis really better, just say that we know we're not quite\nperfectly correct, in DNS terms.\n\nCheers,\nS.\n",
+          "createdAt": "2021-06-07T16:48:56Z",
+          "updatedAt": "2021-06-07T16:48:56Z"
         }
       ],
       "reviews": [
@@ -42246,6 +42475,166 @@
               "updatedAt": "2021-06-04T22:44:43Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NDU5MzMw",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-07T14:07:59Z",
+          "updatedAt": "2021-06-07T14:09:09Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "This assertion requires a bunch of assumptions:\r\n* A server has published an IPv4 address in the public_name even though they're not supposed to, presumably because it's permitted by a future draft.\r\n* public_name is delivered \"securely\".\r\n* ICANN won't let anyone register a numeric TLD.\r\n* Clients don't parse IPv4 strings into 4 octets, and then try to interpret that as a domain name, resulting in a memory safety violation.\r\n\r\nI find these assumptions less than totally obvious, and that makes this text confusing.\r\n\r\nHere's some alternative explanatory text.\r\n```suggestion\r\nvalue when the input is an IPv4 address.) Ignoring any ECHConfig whose `public_name`\r\nis an IPv4 addresses allows the use of such addresses to be defined in a future\r\nupdate to ECH without breaking compatibility.\r\n```",
+              "createdAt": "2021-06-07T14:07:59Z",
+              "updatedAt": "2021-06-07T14:38:04Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NDc4ODIz",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T14:23:54Z",
+          "updatedAt": "2021-06-07T14:23:54Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "> Ignoring IPv4 addresses in `public_name` allows their use to be defined in a future update to ECH without breaking compatibility.\r\n\r\nI don't think this is true. If that's the goal, we'd need a MUST-level requirement. With a SHOULD, some TLS implementations will ignore it, while others will go ahead and use that ECHConfig and likely get confused.",
+              "createdAt": "2021-06-07T14:23:54Z",
+              "updatedAt": "2021-06-07T14:23:54Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NDgzOTk5",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T14:27:58Z",
+          "updatedAt": "2021-06-07T14:27:58Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "@bemasc clarifying question: by \"ignoring IPv4 addresses in `public_name`,\" do you mean \"ignore ECHConfigs that contain an IPv4 address,\" or \"allow ECHConfigs that contain an IPv4 address (by ignoring the fact that the config contains one)\"? (I'm parsing your suggestion as the latter, which seems counter to what this PR is trying to do.)",
+              "createdAt": "2021-06-07T14:27:58Z",
+              "updatedAt": "2021-06-07T14:27:58Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NDk4ODI5",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T14:39:47Z",
+          "updatedAt": "2021-06-07T14:39:47Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "@davidben Perhaps, but that's how I read the intention of the PR nonetheless.\r\n\r\n@chris-wood The former.  I updated my comment to clarify.",
+              "createdAt": "2021-06-07T14:39:47Z",
+              "updatedAt": "2021-06-07T14:39:47Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NTI5MzU4",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T15:00:39Z",
+          "updatedAt": "2021-06-07T15:00:39Z",
+          "comments": [
+            {
+              "originalPosition": 30,
+              "body": "Couple minor nitpicks, just to make this less long-winded: I think we can drop \"non-empty\". It's already captured by both the struct definition and \"DNS name\". We can probably also replace \"standard dotted-decimal or other non-standard notations such as octal and hexadecimal\" with \"dotted-decimal or other notations\", since this PR ends up citing WHATWG later anyway. (Also it seems better not to get into the \"standard\" vs \"non-standard\" rabbithole regarding IETF vs WHATWG spellings.)",
+              "createdAt": "2021-06-07T15:00:39Z",
+              "updatedAt": "2021-06-07T15:00:53Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NTY2Nzk4",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T15:27:54Z",
+          "updatedAt": "2021-06-07T15:27:54Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "Perhaps s/WhatWGURLAddressParser/WHATWG-IPV4/ to be slightly shorter? Also, while not explicitly stated, the example in https://datatracker.ietf.org/doc/html/rfc7322#section-4.8.6.6 implies we like SHOUTY-CASE-WITH-HYPHENS for these tags.",
+              "createdAt": "2021-06-07T15:27:54Z",
+              "updatedAt": "2021-06-07T15:27:54Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjQ5Mjg1",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T16:38:28Z",
+          "updatedAt": "2021-06-07T16:38:29Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "\ud83d\udc4d The variant in your PR is cleaner, so we can just use that if we decide to land this.",
+              "createdAt": "2021-06-07T16:38:29Z",
+              "updatedAt": "2021-06-07T16:38:29Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjUwMDQx",
+          "commit": {
+            "abbreviatedOid": "536afde"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T16:39:19Z",
+          "updatedAt": "2021-06-07T16:39:19Z",
+          "comments": [
+            {
+              "originalPosition": 30,
+              "body": "\ud83d\udc4d I'm fine with this, too :)",
+              "createdAt": "2021-06-07T16:39:19Z",
+              "updatedAt": "2021-06-07T16:39:19Z"
+            }
+          ]
         }
       ]
     },
@@ -42386,7 +42775,7 @@
       "labels": [],
       "body": "After having written so many variations of ClientHelloOuterAAD construction (client and server, test and production), I think this may be simpler. A little bit less ClientHello rewriting. The cost is predicting the payload length on the client (same as PSK binders), but that prediction is just adding the tag length to len(EncodedClientHelloInner). The server, in particular, needs to parse and then re-encode an arbitrary incoming ClientHelloOuter with transforms.\r\n\r\nThoughts?",
       "createdAt": "2021-06-04T02:54:47Z",
-      "updatedAt": "2021-06-04T23:43:05Z",
+      "updatedAt": "2021-06-07T23:45:48Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
@@ -42446,6 +42835,13 @@
           "body": "@davidben LGTM! Thanks for making that change.",
           "createdAt": "2021-06-04T23:43:05Z",
           "updatedAt": "2021-06-04T23:43:05Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@davidben would you mind resolving conflicts here?",
+          "createdAt": "2021-06-07T23:45:48Z",
+          "updatedAt": "2021-06-07T23:45:48Z"
         }
       ],
       "reviews": [
@@ -42489,13 +42885,13 @@
       "labels": [],
       "body": "Closes #433. This PR does four things:\r\n\r\n1. Apply the EncodedClientHelloInner change suggested in #433.\r\n\r\n2. Adjust the recommended padding scheme to round the overall length to\r\n   a multiple of 32, now that this is fairly easy to compute.\r\n\r\n3. It fixes an mistake in the recommended padding scheme. The server\r\n   sets maximum_name_length to the longest *name*, but the client\r\n   computes padding based on the server_name *extension*. We're\r\n   miscounting 7 bytes of extension overhead and effectively are using\r\n   maximum_name_length - 7 instead of maximum_name_length.\r\n\r\n4. It defines what to do if you aren't sending SNI. While unlikely to\r\n   happen in practice (no way to get an ECHConfig), implementations will\r\n   need to handle this. The application may well call SetECHConfigList()\r\n   without SetServerName() and it's rude to crash. It's pretty obvious what\r\n   to do, so just define it.\r\n\r\n(If folks would rather the PR only do a subset of these, I can defer the more controversial bits to other PRs. They all touched the same text, so it was easier to just do them all.)",
       "createdAt": "2021-06-04T03:28:07Z",
-      "updatedAt": "2021-06-04T18:21:47Z",
+      "updatedAt": "2021-06-07T21:05:11Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "encoded-padding",
-      "headRefOid": "e5674773c8ccaeed7fab676105cdc8ed9245f576",
+      "headRefOid": "95b91f0d0465d5fcee3cd0d73c84dc293f4146b5",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -42507,6 +42903,13 @@
           "body": "> This isn't how I had planned to implement this, but it seems preferable. Mostly because the padding calculation is clearer. I had planned to do much the same as this, but with a padding extension. This is less fuss.\r\n\r\nYeah, I'd actually already implemented the draft-10 construction, but I prefer this one. As you say, less fuss, especially if you want to do whole-message rounding. I also prefer rounding to a multiple of 32 at the end. If we decrease the range of possible values, it's easier to GREASE.",
           "createdAt": "2021-06-04T03:47:34Z",
           "updatedAt": "2021-06-04T03:47:34Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Oops. Pushed one more fixup to correct the server_name extension overhead. I missed the ServerNameList length prefix, so the correct overhead is 9, not 7. See 95b91f0d0465d5fcee3cd0d73c84dc293f4146b5 for derivation.",
+          "createdAt": "2021-06-07T21:05:10Z",
+          "updatedAt": "2021-06-07T21:05:10Z"
         }
       ],
       "reviews": [
@@ -42870,6 +43273,363 @@
           "createdAt": "2021-06-07T13:39:38Z",
           "updatedAt": "2021-06-07T13:39:38Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 446,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjYzNjYzNDI2",
+      "title": "Rephrase maximum_name_length description.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/446",
+      "state": "MERGED",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "While padding is \"described below\", it's pretty far away now. We also\r\nrecommend the padding scheme whether or not the value is non-zero. The\r\ntext about wildcard names also applies in both cases and seems to\r\ndescribe when the server name may exceed the max.\r\n\r\nThis rephases things a bit.",
+      "createdAt": "2021-06-07T15:17:20Z",
+      "updatedAt": "2021-06-07T23:45:26Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "max-name-length",
+      "headRefOid": "f1d760ec9cdd4627cb68a48cd91d0f371c769d46",
+      "closedAt": "2021-06-07T23:45:26Z",
+      "mergedAt": "2021-06-07T23:45:26Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "10b35926e5773868e5e01682308b960ae51602eb"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjI0OTM3",
+          "commit": {
+            "abbreviatedOid": "d2a3f93"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-07T16:15:51Z",
+          "updatedAt": "2021-06-07T16:16:24Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "```suggestion\r\nconstrain server name lengths. Names may exceed this length if, e.g.,\r\n```",
+              "createdAt": "2021-06-07T16:15:51Z",
+              "updatedAt": "2021-06-07T16:16:24Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 447,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjYzNjgxNTI4",
+      "title": " Leave IPv4 address parsing to the application",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/447",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This sits on top of #436 (per https://github.com/tlswg/draft-ietf-tls-esni/pull/436#issuecomment-855992106) and is an implementation of https://github.com/tlswg/draft-ietf-tls-esni/pull/436#discussion_r640744959.\r\n    \r\nThis is the \"somebody else's problem\" option, on the theory that IP parsers are typically outside the TLS stack, and, sadly, IPv4 address syntaxes are a bit inconsistent across applications.\r\n\r\nThis is papering over the fact that what DNS believes is a DNS name doesn't match reality. Almost everyone sticks IP literals and DNS names into one syntax, in slightly different variations. But we appear to have dug ourselves into that hole, so this PR attempts rationalize it by saying those applications accept a subset of the DNS syntax, and it's on the applications to manage their subsets.",
+      "createdAt": "2021-06-07T15:37:35Z",
+      "updatedAt": "2021-06-07T17:40:35Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "punt-ip-problem",
+      "headRefOid": "eccd3fe2ff67512af397e4498292594a0b3d9ae4",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjQxOTA0",
+          "commit": {
+            "abbreviatedOid": "eccd3fe"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "I'm equally fine with this PR and #436, as I think the outcome will be the same for both. I wonder if we even need the sentence about `DNSOrIp` syntax though. The \"applications verify certificates using public name as a DNS reference identity\" seems like it ought to be sufficient?",
+          "createdAt": "2021-06-07T16:30:40Z",
+          "updatedAt": "2021-06-07T16:35:10Z",
+          "comments": [
+            {
+              "originalPosition": 71,
+              "body": "```suggestion\r\n?I-D.draft-ietf-httpbis-semantics}}, with the public name as a DNS-based\r\nreference identity. Applications that incorporate DNS names and IP addresses\r\ninto the same syntax (e.g. {{?RFC3986, Section 7.4}} and {{WHATWG-IPV4}}) MUST\r\nreject names that would be interpreted as IPv4 addresses.\r\n```",
+              "createdAt": "2021-06-07T16:30:40Z",
+              "updatedAt": "2021-06-07T16:35:10Z"
+            },
+            {
+              "originalPosition": 71,
+              "body": "(simplifying to further punt on particulars of what certificate validators do with DNS names)",
+              "createdAt": "2021-06-07T16:30:50Z",
+              "updatedAt": "2021-06-07T16:35:10Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NzA1NTc0",
+          "commit": {
+            "abbreviatedOid": "eccd3fe"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:38:33Z",
+          "updatedAt": "2021-06-07T17:38:33Z",
+          "comments": [
+            {
+              "originalPosition": 71,
+              "body": "Hrm. I guess I was viewing \"I think this is actually an IP\" as a special case of \"I don't accept that DNS name\". But maybe that's an unnecessary generalization?",
+              "createdAt": "2021-06-07T17:38:33Z",
+              "updatedAt": "2021-06-07T17:38:33Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NzA3Mjc0",
+          "commit": {
+            "abbreviatedOid": "eccd3fe"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:40:34Z",
+          "updatedAt": "2021-06-07T17:40:35Z",
+          "comments": [
+            {
+              "originalPosition": 71,
+              "body": "Yeah, that's what I'm thinking. Less words overall, and it seems to have the same effect.",
+              "createdAt": "2021-06-07T17:40:35Z",
+              "updatedAt": "2021-06-07T17:40:35Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 449,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjYzNzU3NjI5",
+      "title": "Make the acceptance signal pseudorandom",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/449",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Based on #423.\r\nCloses #448.\r\n\r\nChanges the acceptance signal to use HKDF-Extract(0, ClientHelloInner.random) as the PRK.",
+      "createdAt": "2021-06-07T17:16:14Z",
+      "updatedAt": "2021-06-07T23:02:00Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "accept-conf-hkdf",
+      "headRefOid": "178938e211ba48402779fba64df06e464575b86b",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Rebased.",
+          "createdAt": "2021-06-07T18:04:05Z",
+          "updatedAt": "2021-06-07T18:04:05Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3Njg3NTMz",
+          "commit": {
+            "abbreviatedOid": "5b945bb"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:21:20Z",
+          "updatedAt": "2021-06-07T17:21:20Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "Do we need to worry about `transcript_ech_conf` itself containing `ClientHelloInner.random` (and a hash of something containing it if HRR), or does that work out in the analysis?",
+              "createdAt": "2021-06-07T17:21:20Z",
+              "updatedAt": "2021-06-07T17:21:50Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NjkxNDU0",
+          "commit": {
+            "abbreviatedOid": "5b945bb"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:26:05Z",
+          "updatedAt": "2021-06-07T17:26:05Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "Hmm... what do you mean by \"worry\" here? (Do you think there's a problem with this formulation?) ",
+              "createdAt": "2021-06-07T17:26:05Z",
+              "updatedAt": "2021-06-07T17:26:22Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NzAzNjg5",
+          "commit": {
+            "abbreviatedOid": "5b945bb"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:36:14Z",
+          "updatedAt": "2021-06-07T17:36:15Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "Dunno if there's a problem. This was meant to be a non-leading question as to whether or not it's fine. :-)\r\n\r\nMy very vague understanding was that formal analyses tended to break down when to you do things like encrypt a key with itself. We're kinda doing that here. So the question is whether this would be a problem.",
+              "createdAt": "2021-06-07T17:36:14Z",
+              "updatedAt": "2021-06-07T17:36:15Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NzA1MDIw",
+          "commit": {
+            "abbreviatedOid": "5b945bb"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T17:37:52Z",
+          "updatedAt": "2021-06-07T17:37:53Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "Ah, okay, I see. I sent Hugo a message out of band to get confirmation on the best outcome here. I'll follow up when I hear back. :-)",
+              "createdAt": "2021-06-07T17:37:53Z",
+              "updatedAt": "2021-06-07T17:37:53Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NzM4NTU1",
+          "commit": {
+            "abbreviatedOid": "178938e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T18:12:23Z",
+          "updatedAt": "2021-06-07T18:12:23Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "> My very vague understanding was that formal analyses tended to break down when to you do things like encrypt a key with itself. We're kinda doing that here. So the question is whether this would be a problem.\r\n\r\nThis is a problem for symmetric encryption, but what we're doing here is different enough that I don't think we can draw any conclusions from that. Though looking at Definition 7 in [the HKDF paper](https://eprint.iacr.org/2010/264), it doesn't seem like this has been explicitly considered. My hunch is that this definition can be extended in a way that let's the info string incorporate the IKM, and that the current proof could be modified to handle this.\r\n\r\n",
+              "createdAt": "2021-06-07T18:12:23Z",
+              "updatedAt": "2021-06-07T18:12:24Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3OTE3OTQ4",
+          "commit": {
+            "abbreviatedOid": "178938e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T21:50:30Z",
+          "updatedAt": "2021-06-07T21:50:30Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "Confirmed with Hugo that this change is not needed if we model the hash function as a RO. If we don't want to do that, and instead want to rely on a PRF assumption, then we'd need to take this suggestion. The existing TLS [security proofs already rely on RO liberally](https://link.springer.com/article/10.1007/s00145-021-09388-x), so I think we can safely assume RO here. But I won't block this, either, if folks would be more comfortable with a weaker assumption at the cost of another chain of hashes.",
+              "createdAt": "2021-06-07T21:50:30Z",
+              "updatedAt": "2021-06-07T22:22:21Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3OTIwMjkx",
+          "commit": {
+            "abbreviatedOid": "178938e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T21:54:38Z",
+          "updatedAt": "2021-06-07T21:54:38Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "The analysis here is in the standard model (no random oracles): https://eprint.iacr.org/2020/1044.pdf",
+              "createdAt": "2021-06-07T21:54:38Z",
+              "updatedAt": "2021-06-07T21:54:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3OTIyNTE1",
+          "commit": {
+            "abbreviatedOid": "178938e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T21:58:20Z",
+          "updatedAt": "2021-06-07T21:58:20Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "My vote would be to do the conservative thing here.",
+              "createdAt": "2021-06-07T21:58:20Z",
+              "updatedAt": "2021-06-07T21:58:20Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3OTUzNTU2",
+          "commit": {
+            "abbreviatedOid": "178938e"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T23:02:00Z",
+          "updatedAt": "2021-06-07T23:02:00Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "I know nothing about this and will defer to you all.",
+              "createdAt": "2021-06-07T23:02:00Z",
+              "updatedAt": "2021-06-07T23:02:00Z"
+            }
+          ]
         }
       ]
     }
