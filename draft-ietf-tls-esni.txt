@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 6 December 2021                                          Fastly
+Expires: 9 December 2021                                          Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                             4 June 2021
+                                                             7 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 December 2021.
+   This Internet-Draft will expire on 9 December 2021.
 
 Copyright Notice
 
@@ -1206,7 +1206,7 @@ Table of Contents
    authoritative for the public name.  If server and advertised keys
    mismatch, the server will respond with ech_retry_requested.  If the
    server does not understand the "encrypted_client_hello" extension at
-   all, it will ignore it as required by [RFC8446]; Section 4.1.2.
+   all, it will ignore it as required by Section 4.1.2 of [RFC8446].
    Provided the server can present a certificate valid for the public
    name, the client can safely retry with updated settings, as described
    in Section 6.1.4.
