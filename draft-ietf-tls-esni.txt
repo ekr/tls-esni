@@ -344,11 +344,10 @@ Table of Contents
       that has been recently removed from active use.
 
    maximum_name_length  The longest name of a backend server, if known.
-      If this value is not known it can be set to zero, in which case
-      clients SHOULD use the inner ClientHello padding scheme described
-      below.  That could happen if wildcard names are in use, or if
-      names can be added or removed from the anonymity set during the
-      lifetime of a particular ECH configuration.
+      If not known, this value can be set to zero.  It is used to
+      compute padding (Section 6.1.3) and does not constrain server name
+      lengths.  Names may exceed this length if, e.g., the server uses
+      wildcard names or added new names to the anonymity set.
 
    public_name  The non-empty name of the client-facing server, i.e.,
       the entity trusted to update the ECH configuration.  This is used
