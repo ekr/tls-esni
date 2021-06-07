@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-04T20:45:19.286088+00:00",
+  "timestamp": "2021-06-07T13:40:08.565961+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -40485,7 +40485,7 @@
       "labels": [],
       "body": "Currently we distinguish between CHI and CHO by sending \"ech_is_inner\"\r\nin CHI and \"encrypted_client_hello\" in CHO. A future change will signal\r\nECH acceptance in HRR using the \"encrypted_client_hello\" codepoint. This\r\nwould violate 8446's rule that disallows unsolicited extensions. In\r\npreparation for this change, this commit removes the \"ech_is_inner\"\r\nextension and adds a byte to the payload of \"encrypted_client_hello\"\r\nthat signals to the server whether the message is CHI or CHO.",
       "createdAt": "2021-04-15T22:37:44Z",
-      "updatedAt": "2021-06-04T14:14:38Z",
+      "updatedAt": "2021-06-05T01:44:14Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
@@ -40772,6 +40772,19 @@
           "createdAt": "2021-06-04T14:14:38Z",
           "updatedAt": "2021-06-04T14:14:38Z",
           "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzM5MDM3",
+          "commit": {
+            "abbreviatedOid": "a8a7c0a"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-05T01:44:14Z",
+          "updatedAt": "2021-06-05T01:44:14Z",
+          "comments": []
         }
       ]
     },
@@ -40787,7 +40800,7 @@
       "labels": [],
       "body": "Based on #422 (review that first!).\r\n\r\nIf an HRR is sent in response to CH, the client doesn't know whether ECH\r\nwas accepted. As a result, it doesn't know whether it's CHI or CHO that\r\nneeds to be updated. The spec attempts to address this ambiguity by\r\nrequiring that all HRR-sensitive parameters are the same in CHI and CHO.\r\nThis criterion is currently underspecified, and it's not clear how to\r\nmake sure that future extensions don't violate it. (See issue #374.)\r\n\r\nThis change solves this ambiguity by adding an explicit signal of ECH\r\nacceptance to HRR. This violates \"don't stick out\" whenever an HRR is\r\ninevitable for a particular client and server configuration. However,\r\nthis change is designed to prevent an active attacker from\r\ndistinguishing real ECH from GREASE ECH by triggering HRR.\r\n\r\nCloses #374 by providing an alternative to PR #407.\r\nCloses #373.\r\nCloses #358.\r\n\r\n",
       "createdAt": "2021-04-15T23:51:53Z",
-      "updatedAt": "2021-06-04T14:36:07Z",
+      "updatedAt": "2021-06-05T01:45:40Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
@@ -41113,6 +41126,119 @@
               "body": "What did you think it meant? The syntax seems pretty clear (to me) -- it's a sequence of messages. Is the problem that the sequence of messages is not clear? Should we just be explicit and list all messages, rather than just assume the reader can figure it out? That is, instead of:\r\n\r\n`ClientHelloInner...ServerHelloECHConf`\r\n\r\nsay\r\n\r\n`ClientHelloInner || ServerHelloECHConf`\r\n\r\nin the happy path, and, e.g., \r\n\r\n`ClientHelloInner1 || HelloRetryRequest || ClientHelloInner2 || ServerHelloECHConf`\r\n\r\nin the HRR+ECH-accept path?\r\n",
               "createdAt": "2021-06-04T14:36:07Z",
               "updatedAt": "2021-06-04T14:36:07Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzEzOTU5",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T23:03:38Z",
+          "updatedAt": "2021-06-04T23:03:39Z",
+          "comments": [
+            {
+              "originalPosition": 322,
+              "body": "Why is `HKDF-Extract(0, ClientHelloInner.random)` now necessary?",
+              "createdAt": "2021-06-04T23:03:38Z",
+              "updatedAt": "2021-06-04T23:03:39Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzE0NjE4",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T23:06:05Z",
+          "updatedAt": "2021-06-04T23:06:05Z",
+          "comments": [
+            {
+              "originalPosition": 315,
+              "body": "Seems like it was to clarify what exactly the transcript hash should consist of (i.e. the zeroes) or else it becomes a recursive definition.",
+              "createdAt": "2021-06-04T23:06:05Z",
+              "updatedAt": "2021-06-04T23:06:05Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzI1MDcz",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T23:49:53Z",
+          "updatedAt": "2021-06-04T23:49:53Z",
+          "comments": [
+            {
+              "originalPosition": 322,
+              "body": "It shouldn't be -- we can probably drop it.",
+              "createdAt": "2021-06-04T23:49:53Z",
+              "updatedAt": "2021-06-04T23:49:53Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzI1NDcx",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T23:51:54Z",
+          "updatedAt": "2021-06-04T23:51:55Z",
+          "comments": [
+            {
+              "originalPosition": 315,
+              "body": "I don't see any difference in the text \ud83e\udd37",
+              "createdAt": "2021-06-04T23:51:54Z",
+              "updatedAt": "2021-06-04T23:51:55Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzM5MDQ4",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-05T01:44:22Z",
+          "updatedAt": "2021-06-05T01:44:22Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzM5MTM5",
+          "commit": {
+            "abbreviatedOid": "c4f84a7"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-05T01:45:39Z",
+          "updatedAt": "2021-06-05T01:45:40Z",
+          "comments": [
+            {
+              "originalPosition": 366,
+              "body": "If you drop `HKDF-Extract(0, ClientHelloInner.random)` above, presumably you should drop `HKDF-Extract(0, ClientHelloInner1.random)` too.",
+              "createdAt": "2021-06-05T01:45:39Z",
+              "updatedAt": "2021-06-05T01:45:40Z"
             }
           ]
         }
@@ -41629,13 +41755,13 @@
       "labels": [],
       "body": "This is yet another option to deal with public_name encoding, reference identity, and ClientHelloOuter construction issues. \r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd ",
       "createdAt": "2021-05-26T19:42:47Z",
-      "updatedAt": "2021-06-04T14:37:02Z",
+      "updatedAt": "2021-06-04T22:49:31Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/prohibit-ips",
-      "headRefOid": "76abb4fc03509161c964485bb1c7b86ddeeeda0c",
+      "headRefOid": "6bbb1e223f0809d9bfd8a834b74f9e15af8cc159",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -41773,6 +41899,13 @@
           "body": "OK, I downgraded to a SHOULD and made an attempt at clarifying risk without being overly verbose. @davidben, @martinthomson, please have a look! @sftcd, would this current framing work for your implementation? (It seems like it would, especially if the amount of parsing is to be minimized.)",
           "createdAt": "2021-06-03T21:32:48Z",
           "updatedAt": "2021-06-03T21:36:07Z"
+        },
+        {
+          "author": "richsalz",
+          "authorAssociation": "NONE",
+          "body": "> I worry we'll end up with a random mix of some TLS libraries doing a lot of work to reimplement the WHATWG algorithm (hopefully correctly!) and other libraries ignoring the text, depending on what they read between the lines of the SHOULD.\r\n\r\nI share this concern.  See my comment above about OpenSSL.",
+          "createdAt": "2021-06-04T22:49:31Z",
+          "updatedAt": "2021-06-04T22:49:31Z"
         }
       ],
       "reviews": [
@@ -42027,6 +42160,92 @@
               "updatedAt": "2021-06-03T22:46:52Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzAyODU2",
+          "commit": {
+            "abbreviatedOid": "76abb4f"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "*shrug* This works for me, although it still is unclear to me what we envision a TLS implementation doing here. I expect for most TLS implementations, \"use the parsers you already have\" isn't actionable because the parser you have is not available in the TLS library. It sounds like that's also true for @martinthomson, just there's a sunk cost thing where he's already implemented it. :-)\r\n\r\nI worry we'll end up with a random mix of some TLS libraries doing a lot of work to reimplement the WHATWG algorithm (hopefully correctly!) and other libraries ignoring the text, depending on what they read between the lines of the SHOULD.",
+          "createdAt": "2021-06-04T22:27:42Z",
+          "updatedAt": "2021-06-04T22:37:09Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "s/the a/the/",
+              "createdAt": "2021-06-04T22:27:42Z",
+              "updatedAt": "2021-06-04T22:36:50Z"
+            },
+            {
+              "originalPosition": 62,
+              "body": "No objection to the sentence, though I'm unsure what it's trying to do in the context of this PR.",
+              "createdAt": "2021-06-04T22:28:20Z",
+              "updatedAt": "2021-06-04T22:36:50Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzA3ODky",
+          "commit": {
+            "abbreviatedOid": "76abb4f"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T22:43:06Z",
+          "updatedAt": "2021-06-04T22:43:06Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "Flagged as an open issue for now.",
+              "createdAt": "2021-06-04T22:43:06Z",
+              "updatedAt": "2021-06-04T22:43:06Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzA3OTQ1",
+          "commit": {
+            "abbreviatedOid": "76abb4f"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T22:43:16Z",
+          "updatedAt": "2021-06-04T22:43:17Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "```suggestion\r\nto the reference identity based on the public_name.\r\n```",
+              "createdAt": "2021-06-04T22:43:16Z",
+              "updatedAt": "2021-06-04T22:43:17Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzA4MTc0",
+          "commit": {
+            "abbreviatedOid": "76abb4f"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-04T22:43:59Z",
+          "updatedAt": "2021-06-04T22:43:59Z",
+          "comments": [
+            {
+              "originalPosition": 62,
+              "body": "I threw this in to allow clients to omit the public name in CHO, for #396.",
+              "createdAt": "2021-06-04T22:43:59Z",
+              "updatedAt": "2021-06-04T22:44:43Z"
+            }
+          ]
         }
       ]
     },
@@ -42167,13 +42386,13 @@
       "labels": [],
       "body": "After having written so many variations of ClientHelloOuterAAD construction (client and server, test and production), I think this may be simpler. A little bit less ClientHello rewriting. The cost is predicting the payload length on the client (same as PSK binders), but that prediction is just adding the tag length to len(EncodedClientHelloInner). The server, in particular, needs to parse and then re-encode an arbitrary incoming ClientHelloOuter with transforms.\r\n\r\nThoughts?",
       "createdAt": "2021-06-04T02:54:47Z",
-      "updatedAt": "2021-06-04T18:09:46Z",
+      "updatedAt": "2021-06-04T23:43:05Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "aad-zeros",
-      "headRefOid": "9ae83580d34b46865444de2a2b660957e697876d",
+      "headRefOid": "f2fe4f94a89097b5cc54f31f3cde25350033f313",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -42213,6 +42432,20 @@
           "body": "The benefit of this change, IIRC, is that you don't need to reserialize anything. But the new proposed text still talks about reserializing. It would be good to find a way to reword it so it doesn't imply that reserialization is needed.",
           "createdAt": "2021-06-04T18:09:46Z",
           "updatedAt": "2021-06-04T18:09:46Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@briansmith Rephrased.",
+          "createdAt": "2021-06-04T23:08:26Z",
+          "updatedAt": "2021-06-04T23:08:26Z"
+        },
+        {
+          "author": "briansmith",
+          "authorAssociation": "NONE",
+          "body": "@davidben LGTM! Thanks for making that change.",
+          "createdAt": "2021-06-04T23:43:05Z",
+          "updatedAt": "2021-06-04T23:43:05Z"
         }
       ],
       "reviews": [
@@ -42574,6 +42807,68 @@
           "body": "",
           "createdAt": "2021-06-04T20:44:40Z",
           "updatedAt": "2021-06-04T20:44:40Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 445,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjYyMjU4NjA1",
+      "title": "Link to sections of references.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/445",
+      "state": "MERGED",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Apparently this works now!",
+      "createdAt": "2021-06-05T01:44:56Z",
+      "updatedAt": "2021-06-07T13:39:43Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "69211578de6a173e9531baff2761176c4c7da1bc",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "link-sections",
+      "headRefOid": "0249e478908e091c082ed2d32d42d76a2b0a36b3",
+      "closedAt": "2021-06-07T13:39:43Z",
+      "mergedAt": "2021-06-07T13:39:43Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc2NzM5MTE4",
+          "commit": {
+            "abbreviatedOid": "0249e47"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-05T01:45:21Z",
+          "updatedAt": "2021-06-05T01:45:21Z",
+          "comments": [
+            {
+              "originalPosition": 121,
+              "body": "It didn't like the semicolon so I reworded this.",
+              "createdAt": "2021-06-05T01:45:21Z",
+              "updatedAt": "2021-06-05T01:45:21Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3NDI0NDE5",
+          "commit": {
+            "abbreviatedOid": "0249e47"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-07T13:39:38Z",
+          "updatedAt": "2021-06-07T13:39:38Z",
           "comments": []
         }
       ]
