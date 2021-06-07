@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 6 December 2021                                          Fastly
+Expires: 9 December 2021                                          Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                             4 June 2021
+                                                             7 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 December 2021.
+   This Internet-Draft will expire on 9 December 2021.
 
 Copyright Notice
 
@@ -436,7 +436,7 @@ Table of Contents
        struct {
           HpkeSymmetricCipherSuite cipher_suite;
           uint8 config_id;
-          opaque enc<1..2^16-1>;
+          opaque enc<0..2^16-1>;
           opaque payload<1..2^16-1>;
        } ClientECH;
 
@@ -448,7 +448,8 @@ Table of Contents
       "ECHConfigContents.cipher_suites" list.
 
    enc  The HPKE encapsulated key, used by servers to decrypt the
-      corresponding "payload" field.
+      corresponding "payload" field.  This field is empty in
+      ClientHelloOuters sent in response to HelloRetryRequest.
 
    payload  The serialized and encrypted ClientHelloInner structure,
       encrypted using HPKE as described in Section 6.1.
@@ -543,7 +544,7 @@ Table of Contents
          HpkeSymmetricCipherSuite cipher_suite;
          uint8 config_id;
          opaque enc<1..2^16-1>;
-         opaque outer_hello<1..2^24-1>;
+         ClientHello outer_hello;
       } ClientHelloOuterAAD;
 
    The first three parameters are equal to, respectively, the
@@ -552,8 +553,9 @@ Table of Contents
    last parameter, "outer_hello", is computed by serializing
    ClientHelloOuter with the "encrypted_client_hello" extension set to
    the empty string, i.e., the "extension_data" list has zero length.
-   Note this serialization does not include the four-byte header
-   included in the Handshake structure.
+   This serialization uses the ClientHello structure from Section 4.1.2
+   of [RFC8446], which does not include the four-byte header included in
+   the Handshake structure.
 
    The decompression process in Section 5.1 forbids
    "encrypted_client_hello" in OuterExtensions.  This ensures the
@@ -1214,7 +1216,7 @@ Table of Contents
    authoritative for the public name.  If server and advertised keys
    mismatch, the server will respond with ech_retry_requested.  If the
    server does not understand the "encrypted_client_hello" extension at
-   all, it will ignore it as required by [RFC8446]; Section 4.1.2.
+   all, it will ignore it as required by Section 4.1.2 of [RFC8446].
    Provided the server can present a certificate valid for the public
    name, the client can safely retry with updated settings, as described
    in Section 6.1.4.
