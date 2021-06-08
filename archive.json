@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-07T23:45:50.686079+00:00",
+  "timestamp": "2021-06-08T17:07:12.509355+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -41429,21 +41429,21 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjE4MTI5ODk2",
       "title": "Relax public_name to public_identity and describe how clients construct CHOuter based on it.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/425",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "chris-wood",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "(This change assumes the answers to (1) and (2) from #424 are both \"yes.\")\r\n\r\nPreviously, public_name was assumed to be a DNS name. #413 added validation criteria for this value. This change relaxes public_name to be a reference identity for the client-facing server. As a result, clients use this identity when constructing CHOuter and authenticating the client-facing server. This identity may be either a DNS name or an IP address, depending on the particular client-facing server deployment.\r\n\r\nI'm totally open to bike shedding the validation criteria, but would really like to hear high-level opinions on this change before doing so.\r\n\r\ncc @bemasc, @davidben, @sftcd, @martinthomson, @dmcardle \r\n\r\nCloses #424, #405, #396",
       "createdAt": "2021-04-19T16:00:44Z",
-      "updatedAt": "2021-04-19T18:23:54Z",
+      "updatedAt": "2021-06-08T17:04:32Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "3562943c804fd173a513037d578a71dfd4ee967b",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/public-identity",
       "headRefOid": "2491e9a1f2d9ba52a6aca68ade485f313cc5599e",
-      "closedAt": null,
+      "closedAt": "2021-06-08T17:04:32Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
@@ -41671,21 +41671,21 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjE4NTMzMjIx",
       "title": "Move public_name to a mandatory extension.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/426",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "chris-wood",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "And in doing so, allow for future extensions to permit IP-based identities with a separate extension.\r\n\r\nAlternate to #425.\r\n\r\n",
       "createdAt": "2021-04-19T21:10:28Z",
-      "updatedAt": "2021-04-20T14:44:26Z",
+      "updatedAt": "2021-06-08T17:04:21Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "3562943c804fd173a513037d578a71dfd4ee967b",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/punt-ips",
       "headRefOid": "79bb7fa90e98cdf5247f9500ca8eb7ef10d7032b",
-      "closedAt": null,
+      "closedAt": "2021-06-08T17:04:21Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
@@ -42735,13 +42735,13 @@
       "labels": [],
       "body": "One of the motivations for encrypting HRR in #407 was the leaks from cookie values. If we don't go with such a construction (which seems likely) and instead do #417 or #422, cookies will be in the clear. That means it is instead on the backend servers to construct cookie values without leaking information. This PR provides security considerations to that effect.\r\n\r\nUnfortunately the requirements on backend servers within a Split Mode deployment are a bit onerous. I suspect, in practice, the answer is that Split Mode deployments cannot even use cookies on the backend server. Between HRRs being rare and stateless HRR being unnecessary over TCP or QUIC, that's hopefully fine. (Note this is different from #418, which was about the *client-facing* server being stateless. This applies if the *backend* server is stateless.)",
       "createdAt": "2021-05-29T17:37:46Z",
-      "updatedAt": "2021-06-04T16:54:49Z",
+      "updatedAt": "2021-06-08T17:00:21Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "acd446bb01a92d1cfb03041c144975d5e3c3931b",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "unencrypted-cookies",
-      "headRefOid": "5c1db4fb8618207e1d43222245335af3ed057b15",
+      "headRefOid": "47cd1131d0bd64360e720b0f1b2838bf5c002047",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -42760,6 +42760,46 @@
           "createdAt": "2021-06-04T16:54:49Z",
           "updatedAt": "2021-06-04T16:54:49Z",
           "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4NzcwMDIx",
+          "commit": {
+            "abbreviatedOid": "5c1db4f"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-08T16:57:00Z",
+          "updatedAt": "2021-06-08T16:58:03Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "```suggestion\r\n{{Section 4.2.2 of RFC8446}} defines a cookie value that servers may send in\r\n```",
+              "createdAt": "2021-06-08T16:57:01Z",
+              "updatedAt": "2021-06-08T16:58:03Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4NzczMzYx",
+          "commit": {
+            "abbreviatedOid": "47cd113"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-08T17:00:21Z",
+          "updatedAt": "2021-06-08T17:00:21Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "This new feature makes me so happy. :-)",
+              "createdAt": "2021-06-08T17:00:21Z",
+              "updatedAt": "2021-06-08T17:00:21Z"
+            }
+          ]
         }
       ]
     },
@@ -42768,24 +42808,26 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjYxMzk1MDc2",
       "title": "Preserve length prefixes in ClientHelloOuterAAD",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/442",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "After having written so many variations of ClientHelloOuterAAD construction (client and server, test and production), I think this may be simpler. A little bit less ClientHello rewriting. The cost is predicting the payload length on the client (same as PSK binders), but that prediction is just adding the tag length to len(EncodedClientHelloInner). The server, in particular, needs to parse and then re-encode an arbitrary incoming ClientHelloOuter with transforms.\r\n\r\nThoughts?",
       "createdAt": "2021-06-04T02:54:47Z",
-      "updatedAt": "2021-06-07T23:45:48Z",
+      "updatedAt": "2021-06-08T17:04:03Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
+      "baseRefOid": "10b35926e5773868e5e01682308b960ae51602eb",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "aad-zeros",
-      "headRefOid": "f2fe4f94a89097b5cc54f31f3cde25350033f313",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "ffeb69859403d1e0b09219887fce7a027ba428cd",
+      "closedAt": "2021-06-08T17:04:03Z",
+      "mergedAt": "2021-06-08T17:04:03Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "16825d47c06eaac4d80768f90f97e120b7e0b540"
+      },
       "comments": [
         {
           "author": "davidben",
@@ -42842,6 +42884,41 @@
           "body": "@davidben would you mind resolving conflicts here?",
           "createdAt": "2021-06-07T23:45:48Z",
           "updatedAt": "2021-06-07T23:45:48Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> would you mind resolving conflicts here?\r\n\r\nRebased.",
+          "createdAt": "2021-06-07T23:56:06Z",
+          "updatedAt": "2021-06-07T23:56:06Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Thanks! Paging @cjpatton, @sftcd, and @cbartle891 for additional reviews.",
+          "createdAt": "2021-06-07T23:57:34Z",
+          "updatedAt": "2021-06-07T23:57:34Z"
+        },
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Apart from my question about clarification, makes sense to me.",
+          "createdAt": "2021-06-08T02:43:36Z",
+          "updatedAt": "2021-06-08T02:43:36Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 08/06/2021 00:57, Christopher Wood wrote:\n> Thanks! Paging @cjpatton, @sftcd, and @cbartle891 for additional reviews.\n> \n\nLGTM\n\nS.\n",
+          "createdAt": "2021-06-08T09:47:08Z",
+          "updatedAt": "2021-06-08T09:47:08Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> I'm kind of thrown off by the use of the word \"predict.\" It suggests to me that there's a chance that the prediction might be wrong. Should it not be \"compute\" instead? Or is there in fact a chance it might be wrong?\r\n\r\nGood idea. I went to make that more precise and, in the process, realized a whole lot of the client procedure was specified funny so e5ddeb9af5f4f142e436e399c1496faceaeb7e83 fixes that up. (Those issues apply to the existing text too, so if we end up not merging this PR, I'll write an equivalent PR with just those bits.)\r\n\r\n[edit: changed commit hash. old one had a typo.]\r\n[edit: so did the second one. bah, okay, going to stop force-pushing now...]",
+          "createdAt": "2021-06-08T16:09:02Z",
+          "updatedAt": "2021-06-08T16:12:31Z"
         }
       ],
       "reviews": [
@@ -42870,6 +42947,138 @@
           "createdAt": "2021-06-04T14:39:59Z",
           "updatedAt": "2021-06-04T14:39:59Z",
           "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4MDMyNDIw",
+          "commit": {
+            "abbreviatedOid": "00e5b73"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-08T02:26:58Z",
+          "updatedAt": "2021-06-08T02:26:59Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "I'm kind of thrown off by the use of the word \"predict.\" It suggests to me that there's a chance that the prediction might be wrong. Should it not be \"compute\" instead? Or is there in fact a chance it might be wrong?\r\n\r\nEdit: Additionally, should we not describe how to predict this length? How does one predict something based on the HPKE AEAD and EncodedClientHelloInner?",
+              "createdAt": "2021-06-08T02:26:58Z",
+              "updatedAt": "2021-06-08T02:31:17Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4MDM4ODM4",
+          "commit": {
+            "abbreviatedOid": "00e5b73"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-08T02:43:47Z",
+          "updatedAt": "2021-06-08T02:43:47Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4NzQwNzc1",
+          "commit": {
+            "abbreviatedOid": "e5ddeb9"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-08T16:26:51Z",
+          "updatedAt": "2021-06-08T16:34:13Z",
+          "comments": [
+            {
+              "originalPosition": 123,
+              "body": "```suggestion\r\nThe client serializes this structure to construct the ClientHelloOuterAAD. It then\r\n```",
+              "createdAt": "2021-06-08T16:26:51Z",
+              "updatedAt": "2021-06-08T16:34:13Z"
+            },
+            {
+              "originalPosition": 127,
+              "body": "Maybe we call this enc_payload (or final_payload or something) to distinguish between the payload extension value? The following sentence read a bit weird to me, where it refers to \"payload\" and \"this value.\" ",
+              "createdAt": "2021-06-08T16:28:26Z",
+              "updatedAt": "2021-06-08T16:34:13Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4NzY2NDk5",
+          "commit": {
+            "abbreviatedOid": "e5ddeb9"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "I'm happy with this.",
+          "createdAt": "2021-06-08T16:53:09Z",
+          "updatedAt": "2021-06-08T16:53:09Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4Nzc1MzUy",
+          "commit": {
+            "abbreviatedOid": "ffeb698"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-08T17:02:30Z",
+          "updatedAt": "2021-06-08T17:02:31Z",
+          "comments": [
+            {
+              "originalPosition": 127,
+              "body": "Done",
+              "createdAt": "2021-06-08T17:02:31Z",
+              "updatedAt": "2021-06-08T17:02:31Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4Nzc1NTg3",
+          "commit": {
+            "abbreviatedOid": "ffeb698"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-08T17:02:46Z",
+          "updatedAt": "2021-06-08T17:02:46Z",
+          "comments": [
+            {
+              "originalPosition": 127,
+              "body": "(Went with final_payload because enc_payload seemed potentially confusing with enc.)",
+              "createdAt": "2021-06-08T17:02:46Z",
+              "updatedAt": "2021-06-08T17:02:46Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4Nzc2NDgy",
+          "commit": {
+            "abbreviatedOid": "ffeb698"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-08T17:03:45Z",
+          "updatedAt": "2021-06-08T17:03:45Z",
+          "comments": [
+            {
+              "originalPosition": 127,
+              "body": "\ud83d\udc4d ",
+              "createdAt": "2021-06-08T17:03:45Z",
+              "updatedAt": "2021-06-08T17:03:45Z"
+            }
+          ]
         }
       ]
     },
@@ -42885,7 +43094,7 @@
       "labels": [],
       "body": "Closes #433. This PR does four things:\r\n\r\n1. Apply the EncodedClientHelloInner change suggested in #433.\r\n\r\n2. Adjust the recommended padding scheme to round the overall length to\r\n   a multiple of 32, now that this is fairly easy to compute.\r\n\r\n3. It fixes an mistake in the recommended padding scheme. The server\r\n   sets maximum_name_length to the longest *name*, but the client\r\n   computes padding based on the server_name *extension*. We're\r\n   miscounting 7 bytes of extension overhead and effectively are using\r\n   maximum_name_length - 7 instead of maximum_name_length.\r\n\r\n4. It defines what to do if you aren't sending SNI. While unlikely to\r\n   happen in practice (no way to get an ECHConfig), implementations will\r\n   need to handle this. The application may well call SetECHConfigList()\r\n   without SetServerName() and it's rude to crash. It's pretty obvious what\r\n   to do, so just define it.\r\n\r\n(If folks would rather the PR only do a subset of these, I can defer the more controversial bits to other PRs. They all touched the same text, so it was easier to just do them all.)",
       "createdAt": "2021-06-04T03:28:07Z",
-      "updatedAt": "2021-06-07T21:05:11Z",
+      "updatedAt": "2021-06-08T17:07:02Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "0dd90ac55559bc0945acb8c78ac7ac114909543c",
@@ -43337,7 +43546,7 @@
       "labels": [],
       "body": "This sits on top of #436 (per https://github.com/tlswg/draft-ietf-tls-esni/pull/436#issuecomment-855992106) and is an implementation of https://github.com/tlswg/draft-ietf-tls-esni/pull/436#discussion_r640744959.\r\n    \r\nThis is the \"somebody else's problem\" option, on the theory that IP parsers are typically outside the TLS stack, and, sadly, IPv4 address syntaxes are a bit inconsistent across applications.\r\n\r\nThis is papering over the fact that what DNS believes is a DNS name doesn't match reality. Almost everyone sticks IP literals and DNS names into one syntax, in slightly different variations. But we appear to have dug ourselves into that hole, so this PR attempts rationalize it by saying those applications accept a subset of the DNS syntax, and it's on the applications to manage their subsets.",
       "createdAt": "2021-06-07T15:37:35Z",
-      "updatedAt": "2021-06-07T17:40:35Z",
+      "updatedAt": "2021-06-08T00:44:05Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
@@ -43415,6 +43624,19 @@
               "updatedAt": "2021-06-07T17:40:35Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3OTk1MzE2",
+          "commit": {
+            "abbreviatedOid": "eccd3fe"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "I would greatly prefer #436.  I don't think that making this someone else's problem is the responsible thing to do.  Most applications take IPv4 and domain names in the same field.  That's how the Internet works, for better or worse, and this approach only creates a negative externality.  As minor as it might seem, that's not how I would like us to operate.",
+          "createdAt": "2021-06-08T00:44:05Z",
+          "updatedAt": "2021-06-08T00:44:05Z",
+          "comments": []
         }
       ]
     },
@@ -43430,7 +43652,7 @@
       "labels": [],
       "body": "Based on #423.\r\nCloses #448.\r\n\r\nChanges the acceptance signal to use HKDF-Extract(0, ClientHelloInner.random) as the PRK.",
       "createdAt": "2021-06-07T17:16:14Z",
-      "updatedAt": "2021-06-07T23:02:00Z",
+      "updatedAt": "2021-06-08T16:55:15Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
@@ -43628,6 +43850,46 @@
               "body": "I know nothing about this and will defer to you all.",
               "createdAt": "2021-06-07T23:02:00Z",
               "updatedAt": "2021-06-07T23:02:00Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc3OTczMDE4",
+          "commit": {
+            "abbreviatedOid": "178938e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-07T23:49:23Z",
+          "updatedAt": "2021-06-07T23:49:23Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "It occurred to me that [QUIC _does_ Extract before calling Expand](https://www.rfc-editor.org/rfc/rfc9001.html#name-initial-secrets) in a similar way, so, if for no other reason than consistency, I'd be OK with this change. We might even consider doing something similar with a per-version salt. ",
+              "createdAt": "2021-06-07T23:49:23Z",
+              "updatedAt": "2021-06-07T23:49:51Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njc4NzY4Mzk5",
+          "commit": {
+            "abbreviatedOid": "178938e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-08T16:55:15Z",
+          "updatedAt": "2021-06-08T16:55:15Z",
+          "comments": [
+            {
+              "originalPosition": 6,
+              "body": "The signal is already bound to the ECH version via the codepoint, though I suppose we may end up choosing the codepoint in a different way eventually. I'd be OK with that change.",
+              "createdAt": "2021-06-08T16:55:15Z",
+              "updatedAt": "2021-06-08T16:55:15Z"
             }
           ]
         }
