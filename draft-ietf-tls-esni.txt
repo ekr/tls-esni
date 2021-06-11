@@ -20,6 +20,14 @@ Abstract
    This document describes a mechanism in Transport Layer Security (TLS)
    for encrypting a ClientHello message under a server public key.
 
+Discussion Venues
+
+   This note is to be removed before publishing as an RFC.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/tlswg/draft-ietf-tls-esni
+   (https://github.com/tlswg/draft-ietf-tls-esni).
+
 Status of This Memo
 
    This Internet-Draft is submitted in full conformance with the
