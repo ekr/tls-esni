@@ -95,20 +95,21 @@ Table of Contents
      10.4.  Optional Configuration Identifiers and Trial Decryption
      10.5.  Outer ClientHello
      10.6.  Related Privacy Leaks
-     10.7.  Attacks Exploiting Acceptance Confirmation
-     10.8.  Comparison Against Criteria
-       10.8.1.  Mitigate Cut-and-Paste Attacks
-       10.8.2.  Avoid Widely Shared Secrets
-       10.8.3.  Prevent SNI-Based Denial-of-Service Attacks
-       10.8.4.  Do Not Stick Out
-       10.8.5.  Maintain Forward Secrecy
-       10.8.6.  Enable Multi-party Security Contexts
-       10.8.7.  Support Multiple Protocols
-     10.9.  Padding Policy
-     10.10. Active Attack Mitigations
-       10.10.1.  Client Reaction Attack Mitigation
-       10.10.2.  HelloRetryRequest Hijack Mitigation
-       10.10.3.  ClientHello Malleability Mitigation
+     10.7.  Cookies
+     10.8.  Attacks Exploiting Acceptance Confirmation
+     10.9.  Comparison Against Criteria
+       10.9.1.  Mitigate Cut-and-Paste Attacks
+       10.9.2.  Avoid Widely Shared Secrets
+       10.9.3.  Prevent SNI-Based Denial-of-Service Attacks
+       10.9.4.  Do Not Stick Out
+       10.9.5.  Maintain Forward Secrecy
+       10.9.6.  Enable Multi-party Security Contexts
+       10.9.7.  Support Multiple Protocols
+     10.10. Padding Policy
+     10.11. Active Attack Mitigations
+       10.11.1.  Client Reaction Attack Mitigation
+       10.11.2.  HelloRetryRequest Hijack Mitigation
+       10.11.3.  ClientHello Malleability Mitigation
    11. IANA Considerations
      11.1.  Update of the TLS ExtensionType Registry
      11.2.  Update of the TLS Alert Registry
@@ -553,7 +554,7 @@ Table of Contents
 5.2.  Authenticating the ClientHelloOuter
 
    To prevent a network attacker from modifying the reconstructed
-   ClientHelloInner (see Section 10.10.3), ECH authenticates
+   ClientHelloInner (see Section 10.11.3), ECH authenticates
    ClientHelloOuter by passing ClientHelloOuterAAD as the associated
    data for HPKE sealing and opening operations.  The
    ClientHelloOuterAAD is a serialized ClientHello structure, defined in
@@ -587,7 +588,7 @@ Table of Contents
    or they send a GREASE ECH extension, as described in Section 6.2.
    Clients of the latter type do not negotiate ECH.  Instead, they
    generate a dummy ECH extension that is ignored by the server.  (See
-   Section 10.8.4 for an explanation.)  The client offers ECH if it is
+   Section 10.9.4 for an explanation.)  The client offers ECH if it is
    in possession of a compatible ECH configuration and sends GREASE ECH
    otherwise.
 
@@ -643,7 +644,7 @@ Table of Contents
    4.  It MAY copy any other field from the ClientHelloInner except
        ClientHelloInner.random.  Instead, It MUST generate a fresh
        ClientHelloOuter.random using a secure random number generator.
-       (See Section 10.10.1.)
+       (See Section 10.11.1.)
 
    5.  The value of "ECHConfig.contents.public_name" MUST be placed in
        the "server_name" extension.
@@ -653,7 +654,7 @@ Table of Contents
        "pre_shared_key" extension in ClientHelloOuter, generated in the
        manner described in Section 6.1.2.  The client MUST NOT use this
        extension to advertise a PSK to the client-facing server.  (See
-       Section 10.10.3.)  When the client includes a GREASE
+       Section 10.11.3.)  When the client includes a GREASE
        "pre_shared_key" extension, it MUST also copy the
        "psk_key_exchange_modes" from the ClientHelloInner into the
        ClientHelloOuter.
@@ -696,7 +697,7 @@ Table of Contents
    ClientHelloOuter, and sets "enc" to the empty string.  Note that the
    HPKE context maintains a sequence number, so this operation
    internally uses a fresh nonce for each AEAD operation.  Reusing the
-   HPKE context avoids an attack described in Section 10.10.2.
+   HPKE context avoids an attack described in Section 10.11.2.
 
    The client then computes ClientHelloOuterAAD (Section 5.2) by
    constructing a ClientHello with all other extensions determined as in
@@ -1286,7 +1287,7 @@ Table of Contents
    not change the security properties of the TLS handshake at all.  Its
    goal is to provide "cover" for the real ECH protocol (Section 6.1),
    as a means of addressing the "do not stick out" requirements of
-   [RFC8744].  See Section 10.8.4 for details.
+   [RFC8744].  See Section 10.9.4 for details.
 
 10.2.  Unauthenticated and Plaintext DNS
 
@@ -1378,7 +1379,7 @@ Table of Contents
    Clients MAY include additional extensions in ClientHelloOuter to
    avoid signaling unusual behavior to passive observers, provided the
    choice of value and value itself are not sensitive.  See
-   Section 10.8.4.
+   Section 10.9.4.
 
 10.6.  Related Privacy Leaks
 
@@ -1410,7 +1411,30 @@ Table of Contents
    connection was made to a host that the client previously connected to
    and which is within the same anonymity set.
 
-10.7.  Attacks Exploiting Acceptance Confirmation
+10.7.  Cookies
+
+   Section 4.2.2 of [RFC8446] defines a cookie value that servers may
+   send in HelloRetryRequest for clients to echo in the second
+   ClientHello.  While ECH encrypts the cookie in the second
+   ClientHelloInner, the backend server's HelloRetryRequest is
+   unencrypted.This means differences in cookies between backend
+   servers, such as lengths or cleartext components, may leak
+   information about the server identity.
+
+   Backend servers in an anonymity set SHOULD NOT reveal information in
+   the cookie which identifies the server.  This may be done by handling
+   HelloRetryRequest statefully, thus not sending cookies, or by using
+   the same cookie construction for all backend servers.
+
+   Note that, if the cookie includes a key name, analogous to Section 4
+   of [RFC5077], this may leak information if different backend servers
+   issue cookies with different key names at the time of the connection.
+   In particular, if the deployment operates in Split Mode, the backend
+   servers may not share cookie encryption keys.  Backend servers may
+   mitigate this by either handling key rotation with trial decryption,
+   or coordinating to match key names.
+
+10.8.  Attacks Exploiting Acceptance Confirmation
 
    To signal acceptance, the backend server overwrites 8 bytes of its
    ServerHello.random with a value derived from the
@@ -1437,20 +1461,20 @@ Table of Contents
    Section 4.1.3).  These mechanisms do not interfere because the
    backend server only signals ECH acceptance in TLS 1.3 or higher.
 
-10.8.  Comparison Against Criteria
+10.9.  Comparison Against Criteria
 
    [RFC8744] lists several requirements for SNI encryption.  In this
    section, we re-iterate these requirements and assess the ECH design
    against them.
 
-10.8.1.  Mitigate Cut-and-Paste Attacks
+10.9.1.  Mitigate Cut-and-Paste Attacks
 
    Since servers process either ClientHelloInner or ClientHelloOuter,
    and because ClientHelloInner.random is encrypted, it is not possible
    for an attacker to "cut and paste" the ECH value in a different
    Client Hello and learn information from ClientHelloInner.
 
-10.8.2.  Avoid Widely Shared Secrets
+10.9.2.  Avoid Widely Shared Secrets
 
    This design depends upon DNS as a vehicle for semi-static public key
    distribution.  Server operators may partition their private keys
@@ -1461,7 +1485,7 @@ Table of Contents
    by publishing different DNS records containing ECHConfig values with
    different keys using a short TTL.
 
-10.8.3.  Prevent SNI-Based Denial-of-Service Attacks
+10.9.3.  Prevent SNI-Based Denial-of-Service Attacks
 
    This design requires servers to decrypt ClientHello messages with
    ClientECH extensions carrying valid digests.  Thus, it is possible
@@ -1469,7 +1493,7 @@ Table of Contents
    attack is bound by the number of valid TCP connections an attacker
    can open.
 
-10.8.4.  Do Not Stick Out
+10.9.4.  Do Not Stick Out
 
    As a means of reducing the impact of network ossification, [RFC8744]
    recommends SNI-protection mechanisms be designed in such a way that
@@ -1520,13 +1544,13 @@ Table of Contents
    some mitigations require coordination between the client and server.
    These mitigations are out-of-scope for this specification.
 
-10.8.5.  Maintain Forward Secrecy
+10.9.5.  Maintain Forward Secrecy
 
    This design is not forward secret because the server's ECH key is
    static.  However, the window of exposure is bound by the key
    lifetime.  It is RECOMMENDED that servers rotate keys frequently.
 
-10.8.6.  Enable Multi-party Security Contexts
+10.9.6.  Enable Multi-party Security Contexts
 
    This design permits servers operating in Split Mode to forward
    connections directly to backend origin servers.  The client
@@ -1544,7 +1568,7 @@ Table of Contents
    the client-facing server because the client validates the server
    certificate against the public name before retrying.
 
-10.8.7.  Support Multiple Protocols
+10.9.7.  Support Multiple Protocols
 
    This design has no impact on application layer protocol negotiation.
    It may affect connection routing, server certificate selection, and
@@ -1553,14 +1577,14 @@ Table of Contents
    entire ClientHello, this design additionally supports encrypting the
    ALPN extension.
 
-10.9.  Padding Policy
+10.10.  Padding Policy
 
    Variations in the length of the ClientHelloInner ciphertext could
    leak information about the corresponding plaintext.  Section 6.1.3
    describes a RECOMMENDED padding mechanism for clients aimed at
    reducing potential information leakage.
 
-10.10.  Active Attack Mitigations
+10.11.  Active Attack Mitigations
 
    This section describes the rationale for ECH properties and mechanics
    as defenses against active attacks.  In all the attacks below, the
@@ -1568,7 +1592,7 @@ Table of Contents
    of the attacker is to learn private information about the inner
    ClientHello, such as the true SNI value.
 
-10.10.1.  Client Reaction Attack Mitigation
+10.11.1.  Client Reaction Attack Mitigation
 
    This attack uses the client's reaction to an incorrect certificate as
    an oracle.  The attacker intercepts a legitimate ClientHello and
@@ -1610,7 +1634,7 @@ Table of Contents
    Certificate message.  Thus, the client will fail to decrypt the
    Certificate and abort the connection.
 
-10.10.2.  HelloRetryRequest Hijack Mitigation
+10.11.2.  HelloRetryRequest Hijack Mitigation
 
    This attack aims to exploit server HRR state management to recover
    information about a legitimate ClientHello using its own attacker-
@@ -1663,7 +1687,7 @@ Table of Contents
    for equality and changes behavior based on the result can be used as
    an oracle to learn the client's SNI.
 
-10.10.3.  ClientHello Malleability Mitigation
+10.11.3.  ClientHello Malleability Mitigation
 
    This attack aims to leak information about secret parts of the
    encrypted ClientHello by adding attacker-controlled parameters and
@@ -1821,6 +1845,12 @@ Table of Contents
               Progress, Internet-Draft, draft-kazuho-protected-sni-00,
               18 July 2017, <https://datatracker.ietf.org/doc/html/
               draft-kazuho-protected-sni-00.txt>.
+
+   [RFC5077]  Salowey, J., Zhou, H., Eronen, P., and H. Tschofenig,
+              "Transport Layer Security (TLS) Session Resumption without
+              Server-Side State", RFC 5077, DOI 10.17487/RFC5077,
+              January 2008,
+              <https://datatracker.ietf.org/doc/html/rfc5077>.
 
    [RFC7301]  Friedl, S., Popov, A., Langley, A., and E. Stephan,
               "Transport Layer Security (TLS) Application-Layer Protocol
