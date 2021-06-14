@@ -360,25 +360,30 @@ Table of Contents
       lengths.  Names may exceed this length if, e.g., the server uses
       wildcard names or added new names to the anonymity set.
 
-   public_name  The non-empty name of the client-facing server, i.e.,
-      the entity trusted to update the ECH configuration.  This is used
-      to correct misconfigured clients, as described in Section 6.1.4.
-      This value MUST NOT begin or end with an ASCII dot and MUST be
-      parsable as a dot-separated sequence of LDH labels, as defined in
-      [RFC5890], Section 2.3.1.  Clients MUST ignore any "ECHConfig"
-      structure whose "public_name" does not meet these criteria.  Note
-      that these criteria are incomplete; they incidentally rule out
-      textual representations of IPv6 addresses (see [RFC3986],
-      Section 3.2.2), but do not exclude IPv4 addresses in standard
-      dotted-decimal or other non-standard notations such as octal and
-      hexadecimal (see [RFC3986], Section 7.4).  If "public_name"
-      contains a literal IPv4 or IPv6 address, the client SHOULD ignore
-      the "ECHConfig" to avoid sending a non-compliant "server_name"
-      extension on the ClientHelloOuter (see [RFC6066], Section 3).
+   public_name  The DNS name of the client-facing server, i.e., the
+      entity trusted to update the ECH configuration.  This is used to
+      correct misconfigured clients, as described in Section 6.1.4.
+
+      Clients MUST ignore any "ECHConfig" structure whose public_name is
+      not parsable as a dot-separated sequence of LDH labels, as defined
+      in [RFC5890], Section 2.3.1 or which begins or end with an ASCII
+      dot.
+
+      Clients SHOULD ignore the "ECHConfig" if it contains an encoded
+      IPv4 address.  To determine if a public_name value is an IPv4
+      address, clients can invoke the IPv4 parser algorithm in
+      [WHATWG-IPV4].  It returns a value when the input is an IPv4
+      address.
+
+      See Section 6.1.4.3 for how the client interprets and validates
+      the public_name.
 
    extensions  A list of extensions that the client must take into
       consideration when generating a ClientHello message.  These are
       described below (Section 4.1).
+
+   [[OPEN ISSUE: determine if clients should enforce a 63-octet label
+   limit for public_name]] [[OPEN ISSUE: fix reference to WHATWG-IPV4]]
 
    The "HpkeKeyConfig" structure contains the following fields:
 
@@ -676,6 +681,9 @@ Table of Contents
    8.  It MUST include an "encrypted_client_hello" extension with a
        payload constructed as described in Section 6.1.1.
 
+   Note that these rules may change in the presence of an application
+   profile specifying otherwise.
+
    [[OPEN ISSUE: We currently require HRR-sensitive parameters to match
    in ClientHelloInner and ClientHelloOuter in order to simplify client-
    side logic in the event of HRR.  See https://github.com/tlswg/draft-
@@ -898,6 +906,15 @@ Table of Contents
    *  If the server requests a client certificate, the client MUST
       respond with an empty Certificate message, denoting no client
       certificate.
+
+   In verifying the client-facing server certificate, the client MUST
+   interpret the public name as a DNS-based reference identity.  Clients
+   that incorporate DNS names and IP addresses into the same syntax
+   (e.g.  [RFC3986], Section 7.4 and [WHATWG-IPV4]) MUST reject names
+   that would be interpreted as IPv4 addresses.  Clients that enforce
+   this by checking and rejecting encoded IPv4 addresses in
+   ECHConfig.contents.public_name do not need to repeat the check at
+   this layer.
 
    Note that authenticating a connection for the public name does not
    authenticate it for the origin.  The TLS implementation MUST NOT
@@ -1813,20 +1830,10 @@ Table of Contents
               DOI 10.17487/RFC2119, March 1997,
               <https://datatracker.ietf.org/doc/html/rfc2119>.
 
-   [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
-              Resource Identifier (URI): Generic Syntax", STD 66,
-              RFC 3986, DOI 10.17487/RFC3986, January 2005,
-              <https://datatracker.ietf.org/doc/html/rfc3986>.
-
    [RFC5890]  Klensin, J., "Internationalized Domain Names for
               Applications (IDNA): Definitions and Document Framework",
               RFC 5890, DOI 10.17487/RFC5890, August 2010,
               <https://datatracker.ietf.org/doc/html/rfc5890>.
-
-   [RFC6066]  Eastlake 3rd, D., "Transport Layer Security (TLS)
-              Extensions: Extension Definitions", RFC 6066,
-              DOI 10.17487/RFC6066, January 2011,
-              <https://datatracker.ietf.org/doc/html/rfc6066>.
 
    [RFC7685]  Langley, A., "A Transport Layer Security (TLS) ClientHello
               Padding Extension", RFC 7685, DOI 10.17487/RFC7685,
@@ -1853,6 +1860,11 @@ Table of Contents
               Progress, Internet-Draft, draft-kazuho-protected-sni-00,
               18 July 2017, <https://datatracker.ietf.org/doc/html/
               draft-kazuho-protected-sni-00.txt>.
+
+   [RFC3986]  Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform
+              Resource Identifier (URI): Generic Syntax", STD 66,
+              RFC 3986, DOI 10.17487/RFC3986, January 2005,
+              <https://datatracker.ietf.org/doc/html/rfc3986>.
 
    [RFC5077]  Salowey, J., Zhou, H., Eronen, P., and H. Tschofenig,
               "Transport Layer Security (TLS) Session Resumption without
@@ -1894,6 +1906,10 @@ Table of Contents
               Identification (SNI) Encryption in TLS", RFC 8744,
               DOI 10.17487/RFC8744, July 2020,
               <https://datatracker.ietf.org/doc/html/rfc8744>.
+
+   [WHATWG-IPV4]
+              "URL Living Standard - IPv4 Parser", May 2021,
+              <https://url.spec.whatwg.org/#concept-ipv4-parser>.
 
 Appendix A.  Alternative SNI Protection Designs
 
