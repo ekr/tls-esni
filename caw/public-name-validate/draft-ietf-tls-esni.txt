@@ -372,7 +372,8 @@ Table of Contents
       consideration when generating a ClientHello message.  These are
       described below (Section 4.1).
 
-   [[OPEN ISSUE: fix reference to WHATWG-IPV4]]
+   [[OPEN ISSUE: determine if clients should enforce a 63-octet label
+   limit for public_name]] [[OPEN ISSUE: fix reference to WHATWG-IPV4]]
 
    The "HpkeKeyConfig" structure contains the following fields:
 
