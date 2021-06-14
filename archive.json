@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-12T12:44:43.501087+00:00",
+  "timestamp": "2021-06-14T19:00:24.981019+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -43342,13 +43342,13 @@
       "labels": [],
       "body": "Closes #433. This PR does four things:\r\n\r\n1. Apply the EncodedClientHelloInner change suggested in #433.\r\n\r\n2. Adjust the recommended padding scheme to round the overall length to\r\n   a multiple of 32, now that this is fairly easy to compute.\r\n\r\n3. It fixes an mistake in the recommended padding scheme. The server\r\n   sets maximum_name_length to the longest *name*, but the client\r\n   computes padding based on the server_name *extension*. We're\r\n   miscounting 7 bytes of extension overhead and effectively are using\r\n   maximum_name_length - 7 instead of maximum_name_length.\r\n\r\n4. It defines what to do if you aren't sending SNI. While unlikely to\r\n   happen in practice (no way to get an ECHConfig), implementations will\r\n   need to handle this. The application may well call SetECHConfigList()\r\n   without SetServerName() and it's rude to crash. It's pretty obvious what\r\n   to do, so just define it.\r\n\r\n(If folks would rather the PR only do a subset of these, I can defer the more controversial bits to other PRs. They all touched the same text, so it was easier to just do them all.)",
       "createdAt": "2021-06-04T03:28:07Z",
-      "updatedAt": "2021-06-11T21:23:34Z",
+      "updatedAt": "2021-06-14T17:24:11Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "f08b6cf4ab8378723f7b4ab36a1d68e29b1227a0",
+      "baseRefOid": "1ca01023a5dacf897b0a5c3faf1fecd356bf4cdf",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "encoded-padding",
-      "headRefOid": "15a269ce1f0cef846bfd60e481030a5e52e43625",
+      "headRefOid": "4b3a48cff0f2edb4ce88340a0ec3718e114219a9",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -43762,6 +43762,26 @@
               "body": "nit: `uint8 zeros[length_of_padding];` aligns a little nicer with [8446](https://datatracker.ietf.org/doc/html/rfc8446#section-5.2).",
               "createdAt": "2021-06-11T21:23:34Z",
               "updatedAt": "2021-06-11T21:23:34Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMTcyNjk1",
+          "commit": {
+            "abbreviatedOid": "4b3a48c"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T17:24:10Z",
+          "updatedAt": "2021-06-14T17:24:11Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "Done. It does make it no longer align with the requested variable name change in {{padding}}, but I agree with you aligning with 8446 makes sense.",
+              "createdAt": "2021-06-14T17:24:10Z",
+              "updatedAt": "2021-06-14T17:24:11Z"
             }
           ]
         }
@@ -44560,7 +44580,7 @@
       "labels": [],
       "body": "This combines #436 and #447, requiring that validation of public_name happen _somewhere_, providing a reference parser (if one does not exist), and allowing it to happen when parsing ECHConfig.\r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd",
       "createdAt": "2021-06-11T18:54:31Z",
-      "updatedAt": "2021-06-12T12:44:25Z",
+      "updatedAt": "2021-06-13T14:37:44Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "f08b6cf4ab8378723f7b4ab36a1d68e29b1227a0",
@@ -44616,6 +44636,64 @@
               "body": "Try splitting this up a little.  You can start multiple sections with \": \" to make separate paragraphs (I think).",
               "createdAt": "2021-06-12T12:09:23Z",
               "updatedAt": "2021-06-12T12:10:46Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgyMzIzMDY5",
+          "commit": {
+            "abbreviatedOid": "89a4e28"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-12T12:44:47Z",
+          "updatedAt": "2021-06-12T12:44:47Z",
+          "comments": [
+            {
+              "originalPosition": 42,
+              "body": "Oh, nice. I didn't know that was possible. I broke up the description into logical units.",
+              "createdAt": "2021-06-12T12:44:47Z",
+              "updatedAt": "2021-06-12T12:44:47Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgyNDE2ODY5",
+          "commit": {
+            "abbreviatedOid": "89a4e28"
+          },
+          "author": "ekr",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2021-06-13T14:29:17Z",
+          "updatedAt": "2021-06-13T14:37:44Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "Let's separate out the conformance requirements and the check. I think you want to say \"This value MUST be a valid domain name in accordance with XXX\".  I believe that would still allow trailing (but not leading) dot, so you may also have to say \"The value MUST NOT end with an ASCII dot\".\r\n\r\n\r\n\r\n\r\n\r\n",
+              "createdAt": "2021-06-13T14:29:17Z",
+              "updatedAt": "2021-06-13T14:37:44Z"
+            },
+            {
+              "originalPosition": 38,
+              "body": "```suggestion\r\n: Clients MUST ignore any `ECHConfig` structure\r\nwhose public_name does is not parsable as a\r\ndot-separated sequence of LDH labels, as defined in\r\n{{!RFC5890, Section 2.3.1}} or which\r\nbegins or end with an ASCII dot.\r\n```",
+              "createdAt": "2021-06-13T14:36:31Z",
+              "updatedAt": "2021-06-13T14:37:44Z"
+            },
+            {
+              "originalPosition": 44,
+              "body": "```suggestion\r\n:  Clients SHOULD ignore the\r\n`ECHConfig` if it contains an encoded IPv4 address. To determine if a\r\npublic_name value is an IPv4 address, clients can invoke the IPv4 parser\r\nalgorithm in {{WHATWG-IPV4}}. It returns a value when the input is an IPv4\r\naddress.\r\n```",
+              "createdAt": "2021-06-13T14:36:57Z",
+              "updatedAt": "2021-06-13T14:37:44Z"
+            },
+            {
+              "originalPosition": 38,
+              "body": "Note that I think this still allows for bogus names, like ones that are super-long. Do we want to allow clients to check for that?\r\n\r\n",
+              "createdAt": "2021-06-13T14:37:23Z",
+              "updatedAt": "2021-06-13T14:37:44Z"
             }
           ]
         }
@@ -44741,6 +44819,48 @@
               "updatedAt": "2021-06-11T22:27:12Z"
             }
           ]
+        }
+      ]
+    },
+    {
+      "number": 458,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjY5NzU5MzEx",
+      "title": "Bump codepoint for draft-11",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/458",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "cc/ @chris-wood ",
+      "createdAt": "2021-06-14T17:48:47Z",
+      "updatedAt": "2021-06-14T18:59:57Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "1ca01023a5dacf897b0a5c3faf1fecd356bf4cdf",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "bump-codepoint",
+      "headRefOid": "6887d1a7812ba832cfa19504fc5291fc4d0ae0e7",
+      "closedAt": "2021-06-14T18:59:57Z",
+      "mergedAt": "2021-06-14T18:59:57Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "68c4af7ec43fa834036587fcf5183bc7578495a1"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMjU1NTYz",
+          "commit": {
+            "abbreviatedOid": "6887d1a"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-14T18:59:53Z",
+          "updatedAt": "2021-06-14T18:59:53Z",
+          "comments": []
         }
       ]
     }
