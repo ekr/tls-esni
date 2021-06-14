@@ -1194,6 +1194,10 @@ Table of Contents
    case, the backend server MUST abort the handshake with an
    "illegal_parameter" alert.
 
+   Note that, in case of HelloRetryRequest, the backend server confirms
+   ECH acceptance twice: first In HelloRetryRequest, as described here;
+   and then in the subsequent ServerHello, as described above.
+
 8.  Compatibility Issues
 
    Unlike most TLS extensions, placing the SNI value in an ECH extension
