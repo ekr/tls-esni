@@ -1183,7 +1183,10 @@ encrypting a ClientHello message under a server public key.<a href="#section-abs
             <p id="section-toc.1-1.17.1"><a href="#section-appendix.d" class="xref">Appendix D</a>.  <a href="#name-change-log" class="xref">Change Log</a></p>
 <ul class="ulEmpty compact toc">
 <li class="ulEmpty compact toc" id="section-toc.1-1.17.2.1">
-                <p id="section-toc.1-1.17.2.1.1"><a href="#section-d.1" class="xref">D.1</a>.  <a href="#name-since-draft-ietf-tls-esni-0" class="xref">Since draft-ietf-tls-esni-09</a></p>
+                <p id="section-toc.1-1.17.2.1.1"><a href="#section-d.1" class="xref">D.1</a>.  <a href="#name-since-draft-ietf-tls-esni-1" class="xref">Since draft-ietf-tls-esni-10</a></p>
+</li>
+              <li class="ulEmpty compact toc" id="section-toc.1-1.17.2.2">
+                <p id="section-toc.1-1.17.2.2.1"><a href="#section-d.2" class="xref">D.2</a>.  <a href="#name-since-draft-ietf-tls-esni-0" class="xref">Since draft-ietf-tls-esni-09</a></p>
 </li>
             </ul>
 </li>
@@ -3248,20 +3251,52 @@ final version of this document.<a href="#section-appendix.d-1.1" class="pilcrow"
 </li>
       </ul>
 <p id="section-appendix.d-2">Issue and pull request numbers are listed with a leading octothorp.<a href="#section-appendix.d-2" class="pilcrow">¶</a></p>
-<div id="since-draft-ietf-tls-esni-09">
+<div id="since-draft-ietf-tls-esni-10">
 <section id="section-d.1">
-        <h2 id="name-since-draft-ietf-tls-esni-0">
-<a href="#section-d.1" class="section-number selfRef">D.1. </a><a href="#name-since-draft-ietf-tls-esni-0" class="section-name selfRef">Since draft-ietf-tls-esni-09</a>
+        <h2 id="name-since-draft-ietf-tls-esni-1">
+<a href="#section-d.1" class="section-number selfRef">D.1. </a><a href="#name-since-draft-ietf-tls-esni-1" class="section-name selfRef">Since draft-ietf-tls-esni-10</a>
         </h2>
 <ul class="normal">
-<li class="normal" id="section-d.1-1.1">Finalize HPKE dependency (#390)<a href="#section-d.1-1.1" class="pilcrow">¶</a>
+<li class="normal" id="section-d.1-1.1">Make HRR confirmation and ECH acceptance explicit (#422, #423)<a href="#section-d.1-1.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-d.1-1.2">Move from client-computed to server-chosen, one-byte config
-identifier (#376, #381)<a href="#section-d.1-1.2" class="pilcrow">¶</a>
+          <li class="normal" id="section-d.1-1.2">Relax computation of the acceptance signal (#420, #449)<a href="#section-d.1-1.2" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-d.1-1.3">Rename ECHConfigs to ECHConfigList (#391)<a href="#section-d.1-1.3" class="pilcrow">¶</a>
+          <li class="normal" id="section-d.1-1.3">Simplify ClientHelloOuterAAD generation (#438, #442)<a href="#section-d.1-1.3" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-d.1-1.4">Clarify some security and privacy properties (#385, #383)<a href="#section-d.1-1.4" class="pilcrow">¶</a>
+          <li class="normal" id="section-d.1-1.4">Allow empty enc in ClientECH (#444)<a href="#section-d.1-1.4" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.1-1.5">Authenticate ClientECH extensions position in ClientHelloOuterAAD (#410)<a href="#section-d.1-1.5" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.1-1.6">Allow clients to send a dummy PSK and early_data in ClientHelloOuter when
+applicable (#414, #415)<a href="#section-d.1-1.6" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.1-1.7">Compress ECHConfigContents (#409)<a href="#section-d.1-1.7" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.1-1.8">Validate ECHConfig.contents.public_name (#413, #456)<a href="#section-d.1-1.8" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.1-1.9">Validate ClientHelloInner contents (#411)<a href="#section-d.1-1.9" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.1-1.10">Note split-mode challenges for HRR (#418)<a href="#section-d.1-1.10" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.1-1.11">Editorial improvements (#428, #432, #439, #445, #458, #455)<a href="#section-d.1-1.11" class="pilcrow">¶</a>
+</li>
+        </ul>
+</section>
+</div>
+<div id="since-draft-ietf-tls-esni-09">
+<section id="section-d.2">
+        <h2 id="name-since-draft-ietf-tls-esni-0">
+<a href="#section-d.2" class="section-number selfRef">D.2. </a><a href="#name-since-draft-ietf-tls-esni-0" class="section-name selfRef">Since draft-ietf-tls-esni-09</a>
+        </h2>
+<ul class="normal">
+<li class="normal" id="section-d.2-1.1">Finalize HPKE dependency (#390)<a href="#section-d.2-1.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.2-1.2">Move from client-computed to server-chosen, one-byte config
+identifier (#376, #381)<a href="#section-d.2-1.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.2-1.3">Rename ECHConfigs to ECHConfigList (#391)<a href="#section-d.2-1.3" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-d.2-1.4">Clarify some security and privacy properties (#385, #383)<a href="#section-d.2-1.4" class="pilcrow">¶</a>
 </li>
         </ul>
 </section>
