@@ -354,10 +354,10 @@ Table of Contents
       entity trusted to update the ECH configuration.  This is used to
       correct misconfigured clients, as described in Section 6.1.5.
 
-      Clients MUST ignore any "ECHConfig" structure whose public_name
-      does is not parsable as a dot-separated sequence of LDH labels, as
-      defined in [RFC5890], Section 2.3.1 or which begins or end with an
-      ASCII dot.
+      Clients MUST ignore any "ECHConfig" structure whose public_name is
+      not parsable as a dot-separated sequence of LDH labels, as defined
+      in [RFC5890], Section 2.3.1 or which begins or end with an ASCII
+      dot.
 
       Clients SHOULD ignore the "ECHConfig" if it contains an encoded
       IPv4 address.  To determine if a public_name value is an IPv4
