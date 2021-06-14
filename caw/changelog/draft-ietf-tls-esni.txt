@@ -1969,7 +1969,7 @@ C.1.  Since draft-ietf-tls-esni-10
 
    *  Relax computation of the acceptance signal (#420, #449)
 
-   *  Fix ClientHelloOuterAAD generation (#438, #442)
+   *  Simplify ClientHelloOuterAAD generation (#438, #442)
 
    *  Allow empty enc in ClientECH (#444)
 
