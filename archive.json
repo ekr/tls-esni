@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-14T19:00:24.981019+00:00",
+  "timestamp": "2021-06-17T03:26:48.246097+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -8668,7 +8668,7 @@
       "id": "MDU6SXNzdWU4MDI1NDE2MDg=",
       "title": "Naive outer_extensions decoding is a DoS risk",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/378",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
@@ -8677,12 +8677,12 @@
       ],
       "body": "A naive implementation of decoding the inner ClientHello can easily go quadratic when processing outer_extensions. Thus far, nothing in TLS has required searching for O(N) extensions, only O(implemented extensions). It's likely a lot of TLS implementations handle the extensions list linearly most of the time.\r\n\r\nouter_extensions is now the first time you have to search for extensions you may not have implemented. A naive implementation would then go quadratic, which is a server DoS risk. It doesn't need to go quadratic (for instance, you can sort ClientHelloOuter's extensions and then binary search per lookup), but it's probably worth at least calling this out, if not switching to a simpler decoding scheme.\r\n\r\n(For a simpler decoder, we already require CHInner group the compressed extensions consecutively. We could do the same with CHOuter, at which point we only need to reference one byte slice, be it by offset/length or some goofier scheme.)",
       "createdAt": "2021-02-05T23:33:28Z",
-      "updatedAt": "2021-04-21T15:41:30Z",
-      "closedAt": null,
+      "updatedAt": "2021-06-14T21:01:31Z",
+      "closedAt": "2021-06-14T21:01:31Z",
       "comments": [
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 05/02/2021 23:33, David Benjamin wrote:\n> A naive implementation of decoding the inner ClientHello can easily\n> go quadratic when processing outer_extensions. Thus far, nothing in\n> TLS has required searching for O(N) extensions, only O(implemented\n> extensions). It's likely a lot of TLS implementations handle the\n> extensions list linearly most of the time.\n> \n> outer_extensions is now the first time you have to search for\n> extensions you may not have implemented. A naive implementation would\n> then go quadratic, which is a server DoS risk. It doesn't need to go\n> quadratic (for instance, you can sort ClientHelloOuter's extensions\n> and then binary search per lookup), but it's probably worth at least\n> calling this out, if not switching to a simpler decoding scheme.\n\nSwitching to a simpler scheme: yes please. Just dropping the\ncompression idea entirely: even better:-)\n\nGiven this optimisation is really mostly for PQ schemes, I'd\nargue it'd be better to just drop the current idea and have\na more constrained one, e.g. using a bit mask as the value\nof outer_extensions, so implementation know exactly which\nextensions can ever be copied from the outer CH.\n\nAnd I'd further argue we can leave defining all of that\nuntil later too.\n\nThe current scheme also imposes quite a testing burden.\nAt least with OpenSSL most extensions have some side-effect\nand testing that all combinations of those are handled\ncorrectly for the inner CH isn't trivial. (That's partly\ndown to old code being a bit awful but I guess won't be\nsimple for any code base.)\n\nCheers,\nS.\n\n\n\n> \n> (For a simpler decoder, we already require CHInner group the\n> compressed extensions consecutively. We could do the same with\n> CHOuter, at which point we only need to reference one byte slice, be\n> it by offset/length or some goofier scheme.)\n> \n",
           "createdAt": "2021-02-06T00:01:19Z",
           "updatedAt": "2021-02-06T00:01:19Z"
@@ -9111,17 +9111,17 @@
       "id": "MDU6SXNzdWU4MjgzODQzMjE=",
       "title": "A MUST for inclusion of public_name in outer SNI seems wrong",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/396",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "sftcd",
-      "authorAssociation": "CONTRIBUTOR",
+      "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [
         "design"
       ],
       "body": "For at least command line clients (e.g. curl) and perhaps for censorship circumvention tools it makes sense to allow the outer SNI to contain nothing or something that is not the public_name from the SVCB RR. It's possible that any tool that acquires an ECHConfig from a non-DNS source would benefit from that option too.\r\n\r\nThe offending (for me:-) text is in section 6.1, 2nd list, bullet 7 where it says: 'The value of ECHConfig.contents.public_name MUST be placed in the \"server_name\" extension.'\r\n\r\nThere may be clients that do need the above. I'm not sure how to chacterise those in a short phrase, but that's likely possible. At the IETF-110 TLS session mention was made of clients that need to fallback but I'm not sure what reference would be correct for that if e.g. we appended something like \"....for clients that need to be able to fallback. [ref]\"",
       "createdAt": "2021-03-10T21:55:49Z",
-      "updatedAt": "2021-04-21T15:41:30Z",
-      "closedAt": null,
+      "updatedAt": "2021-06-14T21:01:49Z",
+      "closedAt": "2021-06-14T21:01:49Z",
       "comments": [
         {
           "author": "cbartle891",
@@ -9146,7 +9146,7 @@
         },
         {
           "author": "sayrer",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "I also found this requirement odd. Is it really necessary with the changes to config_id in draft -10? If someone could explain why this should be mandatory, that would be fine. I just don't understand the requirement.",
           "createdAt": "2021-03-10T23:08:14Z",
           "updatedAt": "2021-03-10T23:08:14Z"
@@ -9160,28 +9160,28 @@
         },
         {
           "author": "sayrer",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "OK, and a server that didn't need the outer SNI name would be identifiable by IP address anyway. Makes sense.",
           "createdAt": "2021-03-10T23:38:13Z",
           "updatedAt": "2021-03-10T23:38:13Z"
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 10/03/2021 23:13, David Benjamin wrote:\n> When there is a mismatch between DNS and the server configuration,\n> the server will handshake with the outer ClientHello. The expectation\n> when that happens is that the connection is authenticated for the\n> public name, which gives an authenticated recovery signal. That means\n> the server needs to, e.g., select a certificate that covers the\n> public name. Thus, the outer SNI selection.\n\nSure - the right outer.sni MUST be valid for the client\nto act upon failed ECH. I don't see that that implies that\nthe ech.public_name MUST be sent though.\n\nS.\n\n\n\n",
           "createdAt": "2021-03-11T11:43:29Z",
           "updatedAt": "2021-03-11T11:43:29Z"
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\nHiya,\n\nOn 10/03/2021 22:12, Carrick Bartle wrote:\n>> and perhaps for censorship circumvention tools\n> \n> Censorship circumvention isn't one of the stated goals of ECH.\n\nI understand the sensitivities there but nor are we forced to\nmake life harder for those who develop such applications.\n(Separately, I don't recall there being any consensus call\nrelated to whether or not that is or is not a goal.)\n\n>> It's possible that any tool that acquires an ECHConfig from a\n>> non-DNS source would benefit from that option too.\n> \n> Even if an ECHConfig is acquired from a non-DNS source, it still has\n> the ECHConfig.contents.public_name field, which, as specified in\n> 6.1.3.3, is necessary because:\n> \n> \"The client MUST verify that the certificate is valid for\n> ECHConfig.contents.public_name. If invalid, it MUST abort the\n> connection with the appropriate alert.\"\n> \n\nA requirement for the client to verify the outer.sni vs. the\npresented cert does not need to involve the public_name. I'm\nfine that the client MUST (as always) verify the presented\ncert vs. the outer.sni if ECH didn't work.\n\nI'd also be fine with a SHOULD send here, or with a \"MUST\ndefault to send public_name in outer.sni\" but an absolute\nMUST is not necessary afaics.\n\nThe issue for me is for a generic library - in that case\nbeing able to override the public_name seems like it may\nsometimes be useful and since there's no need to require\nlibrary developers to enforce the MUST, it's a bad plan\nI think.\n\nCheers,\nS.\n\n\n\n\n\n\n",
           "createdAt": "2021-03-11T11:43:30Z",
           "updatedAt": "2021-03-11T11:43:30Z"
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\nHiya,\n\nOn 10/03/2021 22:34, ekr wrote:\n> I believe we should keep this as-is. Fallback is for the server's \n> benefit and the client has no way of knowing whether it will be \n> needed.\n\nNot convinced.\n\nFor a web browser talking to a web server given a sensible\nset of DNS RRs, I do agree with you. For any random TLS\nclient/server pair, I'm not yet convinced. Hence I still\nconsider an absolute MUST OTT/wrong.\n\nS.\n\n\n\n",
           "createdAt": "2021-03-11T11:43:35Z",
           "updatedAt": "2021-03-11T11:43:35Z"
@@ -9223,7 +9223,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 23/03/2021 22:44, Christopher Wood wrote:\n> This seems to advocate that a SHOULD, rather than a MUST, \n\nI think a SHOULD is correct.\n\nCheers,\nS.\n",
           "createdAt": "2021-03-23T22:49:10Z",
           "updatedAt": "2021-03-23T22:49:10Z"
@@ -9244,7 +9244,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 24/03/2021 19:09, David Benjamin wrote:\n> (I don't particular care about MUST vs. SHOULD. Whatever we say\n> elsewhere for server_name I guess.)\n\nI do:-) SHOULD seems correct to me. A MUST over-constrains\ngeneric libraries.\n\n> \n> @cjpatton I'm not following. I think talking about public_name !=\n> CHOuter.server_name is getting causality the wrong way around.\n\nI agree with the above but will quibble with some text\nbelow...\n\n> CHOuter is a construct we are inventing in ECH. That means we get to\n> define the semantics. \n\nNot really - CHOuter has to be a \"working\" CH with semantics\ndefined by 8446, so we're a lot more constrained in reality.\n\n> The semantics we've defined are that CHOuter,\n> along with the result of handshaking with CHOuter, is intended for\n> the ECH rejection case. \n\nYep.\n\n> How does the client know how the ECH\n> rejection case works, well we also need to define that. Our\n> definition is that ECHConfig.public_name tells you the name to\n> handshake against. \n\nThat's too absolute IMO. ECHConfig.public_name tells you *a*\nname that should work for the CHOuter fallback. There will be\nmany situations where another name can work as well, though\nusing ECHConfig.public_name is a fine default/SHOULD.\n\nCheers,\nS.\n",
           "createdAt": "2021-03-24T19:44:44Z",
           "updatedAt": "2021-03-24T19:44:44Z"
@@ -9258,7 +9258,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\nLet me try another way to justify a SHOULD.\n\nConsider SMTP/TLS. There can be >1 MX RR value for a domain.\nWhen forwarding a mail to ***@***.*** it may (or may not)\nbe that the correct way to handle ECH for SMTP/TLS is to look\nfor an SVCB at example.com or at one of the MX names that we\nfind at example.com. It may (or may not) be the case that\nsome or all of the server-side TLS endpoints for those MX\nnames share the same ECHConfig private values at a given\nmoment. It may (or may not) be the case that the DNS answers\nfor type65 at all those MX names and example.com are well\nmanaged and always in sync. It may (and it will:-) be the\ncase that multiple MX name type65 RRs and multiple SVCB RR\nvalues including future new SVCB or ECHConfig extensions\ninteract in ways the TLS WG can't now forsee.\n\nI think there could in future be a real use-case for ECH in\nSMTP/TLS, and that it'd be wrong for the TLS WG to decide now\nwith a MUST how ECHConfig.public_name ought be handled in all\ncases. I reckon many other protocols using TLS might also\neach have a pile of wrinkles we can't analyse.\n\nSo I argue that at least generic libraries for TLS ought\nnot be prohibited from having some kind of override that\nresults in outer.sni != ECHConfig.public_name. (And for at\nleast some generic libraries, contravening such a MUST\nwould I think be a reason why upstream might reject an\noffered PR.)\n\nAll that said, using ECHConfig.public_name SHOULD work in\nalmost all cases so is a good default and one to probably\nencourage.\n\nHope that helps,\nS.\n\nPS: As an aside: some MX names expose what we'd like to\nput in inner.sni, whereas some will not, and a simple sub-\nstring match won't always catch that. But that's an issue for\nsome mail folks to consider later, if it's a real issue. (It\nprobably isn't for TLS, but maybe is for how MTAs might use\nmultiple DoX queries.)\n\n\n",
           "createdAt": "2021-03-25T04:11:18Z",
           "updatedAt": "2021-03-25T04:11:18Z"
@@ -9765,7 +9765,7 @@
       "id": "MDU6SXNzdWU4NDEyMzIxODQ=",
       "title": "public_name edge cases and client checks",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/405",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
@@ -9774,8 +9774,8 @@
       ],
       "body": "Some edge cases around the public_name:\r\n\r\n1. What if the public name is some random string which is not a valid DNS name? (What's the right terminology here? Same from RFC6066?) Does the client reject the ECHConfig? My feeling is yes. Imagine you have some random service accessible on a private address. Today, it can assume it'll never see `\\\"\\r\\n;DROP TABLES` in the server_name field. Even if an attacker pointed `evil.example` at that private address, the attacker is constrained by valid DNS strings. But the public name is never directly queried in DNS.\r\n\r\n2. Is a server deployment allowed to use an IP certificate for the ECH rejection identity? (That was actually the original idea for the fallback flow.) If so, how do they specify it? Do they use the ASCII serialization of the IPv4 or IPv6 address? Note that IP addresses do not go in server name, so the client would need to recognize this and leave server_name empty.\r\n\r\n@dmcardle ",
       "createdAt": "2021-03-25T19:14:10Z",
-      "updatedAt": "2021-04-21T15:41:30Z",
-      "closedAt": null,
+      "updatedAt": "2021-06-14T21:02:45Z",
+      "closedAt": "2021-06-14T21:02:45Z",
       "comments": [
         {
           "author": "chris-wood",
@@ -9926,7 +9926,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 02/04/2021 16:32, Benjamin M. Schwartz wrote:\n> OK.  As I mentioned yesterday, I think `public_name` should probably\n> be an X.509\n> [`GeneralName`](https://tools.ietf.org/html/rfc5280#section-4.2.1.6).\n\nStrongly disagree. GeneralName was a reasonable guess at a\nthing to do 20 years ago but is no longer a structure that\nought be leveraged - we have no need for EDI nor X.400 names\nfor ECH and even tempting someone to write code for ORAddress\nhandling is risky - there's >1 can of worms there all of\nwhich are best avoided.\n\nS.\n\n",
           "createdAt": "2021-04-02T17:57:00Z",
           "updatedAt": "2021-04-02T17:57:00Z"
@@ -9937,6 +9937,13 @@
           "body": "Agree with Stephen. Using GeneralName is like hunting butterflies with an elephant gun. :)",
           "createdAt": "2021-04-03T14:36:31Z",
           "updatedAt": "2021-04-03T14:36:31Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Addressed in #456, closing.",
+          "createdAt": "2021-06-14T21:02:44Z",
+          "updatedAt": "2021-06-14T21:02:44Z"
         }
       ]
     },
@@ -10068,7 +10075,7 @@
       "id": "MDU6SXNzdWU4NjEzNDMyODM=",
       "title": "Should IP addresses be allowed for the client-facing server?",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/424",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "chris-wood",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
@@ -10077,8 +10084,8 @@
       ],
       "body": "In #413, there's been a lot of discussion around how and whether or not IP addresses should be allowed as a reference identity of the client-facing server. This issue tracks sorting this particular question out. \r\n\r\n- @bemasc suggested [allowing the SNI be empty](https://github.com/tlswg/draft-ietf-tls-esni/issues/405#issuecomment-812088744) in the case the reference identity is an IP address. (Whether or not this address is in the ECHConfig is separate.)\r\n- @martinthomson suggested [prohibiting IP addresses in the ECHConfig](https://github.com/tlswg/draft-ietf-tls-esni/pull/413#issuecomment-822089084). (Whether or not this allows the outer SNI to be empty is separate.)\r\n\r\nSo there seems to be two questions we need to sort out, in relation to #396:\r\n\r\n1. Should the ECHConfig be allowed to supply IP addresses? And if so, how do client stacks validate them?\r\n2. Should clients be allowed to validate servers using IP addresses as a reference identity? (If yes, then the ClientHelloOuter.SNI must be allowed to be empty/omitted.)\r\n\r\nI think (2) should be 'yes', given that's currently possible today introduces no new complexity. I think it should be feasible to spell out the requirements to make (1) feasible, so I also think that should be 'yes'.\r\n\r\nWhat do others think?",
       "createdAt": "2021-04-19T14:01:11Z",
-      "updatedAt": "2021-04-21T15:41:31Z",
-      "closedAt": null,
+      "updatedAt": "2021-06-14T21:02:10Z",
+      "closedAt": "2021-06-14T21:02:10Z",
       "comments": [
         {
           "author": "bemasc",
@@ -10145,7 +10152,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\n\nOn 19/04/2021 15:58, David Benjamin wrote:\n> (Are there weird networks that rewrite addresses at the DNS level?\n> That would also break with this idea.)\nI seem to recall some DNS IPv6 transition thing that maybe\nhas that property.\n\nS.\n\n",
           "createdAt": "2021-04-19T20:26:06Z",
           "updatedAt": "2021-04-19T20:26:06Z"
@@ -10236,7 +10243,7 @@
         },
         {
           "author": "sftcd",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "\nIt's really a different point and maybe deserves it's own\nissue but since I'm not logged into github and email works...\n\nOn 21/04/2021 06:04, David Benjamin wrote:\n> The extensibility story for ECH is a little funny. You send an\n> ECHConfigList and the client ignores any ECHConfigs it can't\n> understand.\nThe \"critical\" bit in x.509 extensions IMO didn't work. IIRC\nwe really designed it for the basicConstraints extension, as\nthat had to be understood by relying parties, but the result\nwas that we more or less only had one shot at introducing any\ncritical extensions - unless I'm forgetting stuff (which is\nentirely possible:-) pretty much all later attempts to add\nnew critical extensions failed as they'd break deployed\nclients. We'd have been better off adding the is-a-ca flag\nand anything else we knew to be critical the TBSCertificate.\n(Again IIRC, we put both critical and non-critical stuff into\nextensions because the *UniqueID fields in TBSCertificate\nthat were added in x.509v2 hadn't been useful so there was\na reluctance to put new fields in there at that point.)\n\nI don't see why criticality is different for ECH extensions.\nMy bet is that any new critical extension will need a new TLS\nextension code point once the first ECH RFC is issued.\n\nSo I'd remove the extensions fields we've defined and if not\nthen at least get rid of the idea of criticality.\n\nCheers,\nS.\n\n\n",
           "createdAt": "2021-04-21T09:40:24Z",
           "updatedAt": "2021-04-21T09:40:24Z"
@@ -10247,6 +10254,13 @@
           "body": "@sftcd I filed #427 to discuss ECHConfig.extensions -- let's try and keep this issue focused on the IP address question(s).",
           "createdAt": "2021-04-21T15:02:56Z",
           "updatedAt": "2021-04-21T15:02:56Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Addressed in #456, closing.",
+          "createdAt": "2021-06-14T21:02:10Z",
+          "updatedAt": "2021-06-14T21:02:10Z"
         }
       ]
     },
@@ -43945,21 +43959,21 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjYzNjgxNTI4",
       "title": " Leave IPv4 address parsing to the application",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/447",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "This sits on top of #436 (per https://github.com/tlswg/draft-ietf-tls-esni/pull/436#issuecomment-855992106) and is an implementation of https://github.com/tlswg/draft-ietf-tls-esni/pull/436#discussion_r640744959.\r\n    \r\nThis is the \"somebody else's problem\" option, on the theory that IP parsers are typically outside the TLS stack, and, sadly, IPv4 address syntaxes are a bit inconsistent across applications.\r\n\r\nThis is papering over the fact that what DNS believes is a DNS name doesn't match reality. Almost everyone sticks IP literals and DNS names into one syntax, in slightly different variations. But we appear to have dug ourselves into that hole, so this PR attempts rationalize it by saying those applications accept a subset of the DNS syntax, and it's on the applications to manage their subsets.",
       "createdAt": "2021-06-07T15:37:35Z",
-      "updatedAt": "2021-06-08T17:19:08Z",
+      "updatedAt": "2021-06-14T19:24:35Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "db00bed8234460217bf49cc4a0a592b3dbaec1f5",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "punt-ip-problem",
       "headRefOid": "eccd3fe2ff67512af397e4498292594a0b3d9ae4",
-      "closedAt": null,
+      "closedAt": "2021-06-14T19:24:34Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
@@ -43970,6 +43984,13 @@
           "body": "Yeah, that we're really papering over DNS failing to match reality is a pretty solid argument. :-) I think the main thing that makes me nervous about #436 is it not wanting to commit to a MUST. I feel it is better to definitively try to resolve the problem, or definitively punt it, rather than leave it ambiguous. That is:\r\n\r\n* Either, we decide that DNS's syntax rules are insufficient and we write down explicitly what we mean. Perhaps that's the WHATWG parser. That means we are deciding every TLS stack must have an implementation of that parser, that this implementation may well be redundant in many applications due to layering, and that we are okay with this.\r\n* Or, we decide that we don't want to deal with this at the TLS level. This means we prefer that there not be redundant parsers, that TLS implementations not parse this messy format, and that in exchange we are okay with punting this to application, with all the risks that entails of the application failing to handle this.\r\n\r\nI'm not opposed to either, but the more I think about it, the more unhappy I am with the SHOULD option. SHOULD seems to basically leave it to interpretation which side we're on.",
           "createdAt": "2021-06-08T17:18:11Z",
           "updatedAt": "2021-06-08T17:19:08Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Closing in favor of #456.",
+          "createdAt": "2021-06-14T19:24:34Z",
+          "updatedAt": "2021-06-14T19:24:34Z"
         }
       ],
       "reviews": [
@@ -44464,24 +44485,26 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjY1NTQ0MDIx",
       "title": "Require compressed extensions appear in the same relative order.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/455",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #378. This is an alternative to #452, which constrains the client such this suggestion is feasible:\r\nhttps://github.com/tlswg/draft-ietf-tls-esni/pull/452#discussion_r647858091\r\n\r\n@martinthomson, thoughts? This does constrain the client behavior, though our draft implementation would not be affected by it. (We run through all the extensions in our usual order and compute the inner value + whether to compress it. If we intend to compress it, we write it to a separate buffer instead of the pending ClientHelloInner. Then we drop in all the buffered extensions, so they're contiguous and, in the EncodedClientHelloInner, write ech_outer_extensions instead of the buffer. This process keeps the relative order of compressed extensions, so we follow this rule anyway.)",
       "createdAt": "2021-06-09T04:55:25Z",
-      "updatedAt": "2021-06-12T03:47:30Z",
+      "updatedAt": "2021-06-14T21:01:31Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "1ca01023a5dacf897b0a5c3faf1fecd356bf4cdf",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "dos-alternate",
-      "headRefOid": "d0356bc11959ee6ab334c375658376ee222ad053",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "fc8602cc94a386d7b03285061f3b07b9e7380ba8",
+      "closedAt": "2021-06-14T21:01:31Z",
+      "mergedAt": "2021-06-14T21:01:31Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "d0f238bb07b7317d406a3ef469997f5d3f20b481"
+      },
       "comments": [
         {
           "author": "sftcd",
@@ -44565,6 +44588,56 @@
           "createdAt": "2021-06-11T23:40:12Z",
           "updatedAt": "2021-06-11T23:40:12Z",
           "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMjg3MDM5",
+          "commit": {
+            "abbreviatedOid": "d0356bc"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM pending suggestions!",
+          "createdAt": "2021-06-14T19:40:05Z",
+          "updatedAt": "2021-06-14T19:54:18Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "```suggestion\r\nno requirement that they be continguous. For example, OuterExtensions may\r\n```",
+              "createdAt": "2021-06-14T19:40:05Z",
+              "updatedAt": "2021-06-14T19:54:18Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "```suggestion\r\nClientHelloInner. It can only be included in EncodedClientHelloInner, and MUST\r\nNOT be sent in either ClientHelloOuter or ClientHelloInner.\r\n```",
+              "createdAt": "2021-06-14T19:42:44Z",
+              "updatedAt": "2021-06-14T19:54:18Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "I was really confused by this at first, so hopefully this helps clarify for others.",
+              "createdAt": "2021-06-14T19:44:18Z",
+              "updatedAt": "2021-06-14T19:54:18Z"
+            },
+            {
+              "originalPosition": 85,
+              "body": "```suggestion\r\n   * While I is less than N and the I-th extension of\r\n```",
+              "createdAt": "2021-06-14T19:52:58Z",
+              "updatedAt": "2021-06-14T19:54:18Z"
+            },
+            {
+              "originalPosition": 91,
+              "body": "```suggestion\r\n   * Otherwise, the I-th extension of ClientHelloOuter has type E. Copy\r\n```",
+              "createdAt": "2021-06-14T19:53:16Z",
+              "updatedAt": "2021-06-14T19:54:18Z"
+            },
+            {
+              "originalPosition": 96,
+              "body": "```suggestion\r\n```\r\nThis seems really language and library specific, so I might just drop it.",
+              "createdAt": "2021-06-14T19:53:49Z",
+              "updatedAt": "2021-06-14T19:54:18Z"
+            }
+          ]
         }
       ]
     },
@@ -44573,25 +44646,70 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjY4NDU4MDky",
       "title": "Require that someone validate public_name correctly.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/456",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "chris-wood",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "This combines #436 and #447, requiring that validation of public_name happen _somewhere_, providing a reference parser (if one does not exist), and allowing it to happen when parsing ECHConfig.\r\n\r\nCloses #396, #405, #424\r\n\r\ncc @martinthomson, @davidben, @cjpatton, @sftcd",
       "createdAt": "2021-06-11T18:54:31Z",
-      "updatedAt": "2021-06-13T14:37:44Z",
+      "updatedAt": "2021-06-14T21:01:49Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "f08b6cf4ab8378723f7b4ab36a1d68e29b1227a0",
+      "baseRefOid": "68c4af7ec43fa834036587fcf5183bc7578495a1",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/public-name-validate",
-      "headRefOid": "89a4e28ac969474595207f57b080f3d07d81d423",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
-      "comments": [],
+      "headRefOid": "a35e46e0388038315f3ee8e93fadb00eb41f9828",
+      "closedAt": "2021-06-14T21:01:49Z",
+      "mergedAt": "2021-06-14T21:01:49Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "6abbf81e48b1bc1f05b01782f7d4c5364e6be9e0"
+      },
+      "comments": [
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 14/06/2021 20:26, Christopher Wood wrote:\n> @chris-wood commented on this pull request.\n> \n> \n> \n>> +: This value MUST NOT begin or end with an ASCII dot and MUST be parsable as a\n> +dot-separated sequence of LDH labels, as defined in\n> +{{!RFC5890, Section 2.3.1}}. Clients MUST ignore any `ECHConfig` structure\n> +whose public_name does not meet these criteria.\n> +\n> \n> The public_name field is already limited to 255 characters, so I think we're fine.\n\nThe max for a label in a DNS name is 63 octets though isn't\nit?\n\n> \n",
+          "createdAt": "2021-06-14T19:28:06Z",
+          "updatedAt": "2021-06-14T19:28:06Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> The max for a label in a DNS name is 63 octets though isn't it?\r\n\r\nYeah, but RFC6066 has no similar requirements (that I can tell), so I don't see we need to impose anything new here. Maybe I'm missing something? And if so, can you please propose text?",
+          "createdAt": "2021-06-14T19:33:33Z",
+          "updatedAt": "2021-06-14T19:33:33Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 14/06/2021 20:33, Christopher Wood wrote:\n>> The max for a label in a DNS name is 63 octets though isn't it?\n> \n> Yeah, but RFC6066 has no similar requirements (that I can tell), so I\n> don't see we need to impose anything new here. Maybe I'm missing \n> something? And if so, can you please propose text?\n\nFair ask:-)\n\nI guess the public_name mostly has to go in a cert SAN so\nwould it help to use or refer to rfc5280 text?\n\nThe most relevant bit there seems to be:\n\n    When the subjectAltName extension contains a domain name\n    system label, the domain name MUST be stored in the\n    dNSName (an IA5String). The name MUST be in the \"preferred\n    name syntax\", as specified by Section 3.5 of [RFC1034] and\n    as modified by Section 2.1 of [RFC1123].  Note that while\n    uppercase and lowercase letters are allowed in domain\n    names, no significance is attached to the case.  In\n    addition, while the string \" \" is a legal domain name,\n    subjectAltName extensions with a dNSName of \" \" MUST NOT\n    be used.\n\n(That text is near [1]).\n\nThat said, that \" \" is a legal domain name surprises me (and\nI'm a co-author of 5280!)\n\nBTW, I'm fine that that all gets fixed later if that's\nbetter.\n\nS.\n\n[1] https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.6\n\n\n",
+          "createdAt": "2021-06-14T19:47:28Z",
+          "updatedAt": "2021-06-14T19:47:28Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> BTW, I'm fine that that all gets fixed later if that's better.\r\n\r\nSounds good -- I dropped an OPEN ISSUE to note this for later. @sftcd, would you have cycles to take that issue and propose a PR to address it?",
+          "createdAt": "2021-06-14T19:52:16Z",
+          "updatedAt": "2021-06-14T19:52:16Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 14/06/2021 20:52, Christopher Wood wrote:\n>> BTW, I'm fine that that all gets fixed later if that's better.\n> \n> Sounds good -- I dropped an OPEN ISSUE to note this for later.\n> @sftcd, would you have cycles to take that issue and propose a PR to\n> address it?\n\nSneaky eh:-)\n\nSure, I can look at it this week but don't wait on me.\n\nS\n\n> \n",
+          "createdAt": "2021-06-14T19:58:04Z",
+          "updatedAt": "2021-06-14T19:58:04Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> Sure, I can look at it this week but don't wait on me.\r\n\r\nYeah, there's no rush here, I think. This seems like a smaller issue to resolve at some point.",
+          "createdAt": "2021-06-14T20:04:00Z",
+          "updatedAt": "2021-06-14T20:04:00Z"
+        }
+      ],
       "reviews": [
         {
           "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgyMTQ4Mzk5",
@@ -44696,6 +44814,46 @@
               "updatedAt": "2021-06-13T14:37:44Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMjc2MjY4",
+          "commit": {
+            "abbreviatedOid": "89a4e28"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T19:26:28Z",
+          "updatedAt": "2021-06-14T19:26:28Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "The public_name field is already limited to 255 characters, so I think we're fine.",
+              "createdAt": "2021-06-14T19:26:28Z",
+              "updatedAt": "2021-06-14T19:26:28Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMjg0OTU3",
+          "commit": {
+            "abbreviatedOid": "cd87b16"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T19:37:31Z",
+          "updatedAt": "2021-06-14T19:37:32Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "Good call -- I believe your suggestions rephrased things to make the requirements and check read easier.",
+              "createdAt": "2021-06-14T19:37:32Z",
+              "updatedAt": "2021-06-14T19:37:32Z"
+            }
+          ]
         }
       ]
     },
@@ -44711,13 +44869,13 @@
       "labels": [],
       "body": "[EDITED] Closes #264 by introducing a new handshake message that contains padding. This has at least ~two advantages~[one advantage] over #313 (padding extension):\r\n\r\n1. [@davidben correctly points out in the comments that we still need the client to solicit this message.] ~In #313, the client solicit server padding by sending it an extension, which itself contains padding. This is kind of a neat design, but doesn't address the issues pointed out in #433 and which are solved by #443 (move client-side padding to CH encoding). If we take #443, then the client would need to solicit server padding with an empty extension. (Or else we bend the extensions rules.)~\r\n\r\n2. In #313, the server's padding appears in EncryptedExtensions. Ideally, the length of the padding take into account the Certificate message selected for the connection. This means the server needs to select Certificate before it finishes EncryptedExtensions. Here, the Padding message immediately precedes Finished, making it easier to implement a comprehensive padding scheme. [We can even account for the signature length in CertificateVerify, which varies widely depending on which signing algorithm is used.]",
       "createdAt": "2021-06-11T21:32:36Z",
-      "updatedAt": "2021-06-11T22:53:20Z",
+      "updatedAt": "2021-06-15T15:52:24Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "1ca01023a5dacf897b0a5c3faf1fecd356bf4cdf",
+      "baseRefOid": "ab293857e5c2f25b84670987873c7d19443408a8",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "padding_message",
-      "headRefOid": "b01c8872bda9e6bb9bcfb7c9fc4176df24dffab4",
+      "headRefOid": "e0fbe9b6a134a3394cd08f9e532d4dbafe63cb21",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -44757,6 +44915,20 @@
           "body": "\n\nOn 11/06/2021 23:31, Christopher Patton wrote:\n> @sftct, a big reason for filing this PR is that this is an\n> alternative to #313 that we've been kicking around for a while, and I\n> wanted to get it down on paper so that we can have something concrete\n> to discuss. What's clear is that to solve #264 without rewriting a\n> bunch of code, we need a way of adding padding via the handshake.\n> Both this PR and #313 do this; this PR is intended to solve some\n> problems with #313.\n\nI'll have to check those issues tomorrow sorry but just to\nnote that using the existing padding with an OpenSSL server\nvery simple - one callback that sets lengths was all it\nneeded for s_server [1] and it'd be the same for any server.\n\nI'd like to understand how this proposal is really better,\nas I'm fairly sure adding a new message will require mucking\nabout with the state machine which is harder and much much\nmore error prone and harder to test properly.\n\nTa,\nS.\n\n[1] \nhttps://github.com/sftcd/openssl/blob/ECH_UPFRONT_DEC/apps/s_server.c#L100\n\n",
           "createdAt": "2021-06-11T22:38:41Z",
           "updatedAt": "2021-06-11T22:38:41Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@cjpatton can you please rebase? (Sorry for the conflicts!)",
+          "createdAt": "2021-06-15T15:19:30Z",
+          "updatedAt": "2021-06-15T15:19:30Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Rebased (still need to address the design comments).",
+          "createdAt": "2021-06-15T15:52:24Z",
+          "updatedAt": "2021-06-15T15:52:24Z"
         }
       ],
       "reviews": [
@@ -44819,6 +44991,66 @@
               "updatedAt": "2021-06-11T22:27:12Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMjcwNjQ5",
+          "commit": {
+            "abbreviatedOid": "b01c887"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T19:19:11Z",
+          "updatedAt": "2021-06-14T19:19:11Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "That works mechanically, but I think it's not the right design. It still involves an optional message, which complicates the receiver's state machine. It also means servers must account for clients that offer ECH without this new extension.\r\n\r\nRather, we can say:\r\n\r\n* If the client sends \"encrypted_client_hello\" with type \"inner\" AND the server sends the ECH confirmation signal, the connection has the \"ECH confirmed\" bit.\r\n* Both client and server will agree on this bit and, if set, we know both clients and servers are new enough to know about ECH. That clears the compatibility bar for tweaking the handshake.\r\n* If the connection has the \"ECH confirmed\" bit, the client and server MUST send and consume _exactly_ one Padding message before each Finished message. Making the message required means the state machine always knows the next message to expect.\r\n* How many bytes go in the Padding message is up to the respective sender. If you don't have anything to pad, just send a zero-length message.\r\n* If we decide we need in-handshake padding for another feature, we can always add some OR clauses to the second condition, if they meet the usual compatibility requirements.\r\n\r\n@martinthomson, I think this was also the construction you preferred?",
+              "createdAt": "2021-06-14T19:19:11Z",
+              "updatedAt": "2021-06-14T19:20:00Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzNDUzNzQ5",
+          "commit": {
+            "abbreviatedOid": "b01c887"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-15T00:12:42Z",
+          "updatedAt": "2021-06-15T00:12:42Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "That's pretty much it.\r\n\r\nI also like the option for a message after the handshake.  That doesn't go in the transcript.  @davidben can just hold off on sending client Finished until it is all received, to avoid his fun deadlocks.",
+              "createdAt": "2021-06-15T00:12:42Z",
+              "updatedAt": "2021-06-15T00:12:42Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njg0MTQwMjY3",
+          "commit": {
+            "abbreviatedOid": "b01c887"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-15T15:09:43Z",
+          "updatedAt": "2021-06-15T15:09:43Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "I think this is too clever to the point of demonstrating why post-handshake doesn't work. :-)\r\n\r\nIf the receiver does not block the handshake on it, I can tell whether it was padding by delaying that record and seeing if the connection is stuck. If the receiver does block the handshake on it, TCP concerns no longer apply but it's not \"after the handshake\" anymore.\r\n\r\nMoreover, making it post-handshake means it's after the key change, which gives a record boundary. Record boundaries are public, which means the padding becomes useless. It needs to be at handshake encryption level and buffered up and flushed to the record layer with the rest of the handshake flight. (But you may still have a padding-only record if you have more padding than your max record size. That's fine, the only requirement is that record boundaries are calculated independently of the padding/message boundary.)\r\n\r\nPost-Finished doesn't even keep it out of the transcript because the transcript is {..., ServerCertificate, ServerCertificateVerify, ServerFinished, ClientCertificate*, ClientCertificateVerify*, ClientFinished}. Any server message sent after ServerFinished but before reading ClientCertificate will naturally sandwich in there, unless we special case the message... at which point, why are we considering the transcript when positioning it?\r\n\r\nIf we want it to be post-Finished but pre-key-change and handshake-blocking, that's perfectly well-defined, I suppose, but having \"Finished\" not be the message which \"finishes\" the handshake seems weird. :-) We also need it after CertificateVerify due to variable-length ECDSA signatures. Put those together and we've uniquely identified the position: in between CertificateVerify and Finished.",
+              "createdAt": "2021-06-15T15:09:43Z",
+              "updatedAt": "2021-06-15T15:12:29Z"
+            }
+          ]
         }
       ]
     },
@@ -44834,7 +45066,7 @@
       "labels": [],
       "body": "cc/ @chris-wood ",
       "createdAt": "2021-06-14T17:48:47Z",
-      "updatedAt": "2021-06-14T18:59:57Z",
+      "updatedAt": "2021-06-14T19:09:19Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "1ca01023a5dacf897b0a5c3faf1fecd356bf4cdf",
@@ -44847,7 +45079,15 @@
       "mergeCommit": {
         "oid": "68c4af7ec43fa834036587fcf5183bc7578495a1"
       },
-      "comments": [],
+      "comments": [
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\nI don't think we need to also bump ech_outer_extensions\nbut just in case...\n\nS\n\nOn 14/06/2021 18:49, Christopher Patton wrote:\n> cc/ @chris-wood\n> You can view, comment on, or merge this pull request online at:\n> \n>    https://github.com/tlswg/draft-ietf-tls-esni/pull/458\n> \n> -- Commit Summary --\n> \n>    * Bump codepoint for draft-11\n> \n> -- File Changes --\n> \n>      M draft-ietf-tls-esni.md (4)\n> \n> -- Patch Links --\n> \n> https://github.com/tlswg/draft-ietf-tls-esni/pull/458.patch\n> https://github.com/tlswg/draft-ietf-tls-esni/pull/458.diff\n> \n",
+          "createdAt": "2021-06-14T19:09:19Z",
+          "updatedAt": "2021-06-14T19:09:19Z"
+        }
+      ],
       "reviews": [
         {
           "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMjU1NTYz",
@@ -44860,6 +45100,335 @@
           "body": "",
           "createdAt": "2021-06-14T18:59:53Z",
           "updatedAt": "2021-06-14T18:59:53Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 459,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjY5ODM5NDIw",
+      "title": "Add 10-to-11 change log.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/459",
+      "state": "MERGED",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Since Padding is still being discussed, I figured we'd leave related issues out of this version and take this opportunity to mark the completion of most HRR issues.\r\n\r\ncc @davidben, @martinthomson, @cjpatton, @cbartle891, @ekr ",
+      "createdAt": "2021-06-14T20:05:52Z",
+      "updatedAt": "2021-06-14T21:04:11Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "68c4af7ec43fa834036587fcf5183bc7578495a1",
+      "headRepository": "tlswg/draft-ietf-tls-esni",
+      "headRefName": "caw/changelog",
+      "headRefOid": "388624357507519304a3b4b689f37022ce58a290",
+      "closedAt": "2021-06-14T21:04:11Z",
+      "mergedAt": "2021-06-14T21:04:11Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "d43fba63cc37ca68467ad228f4b405a93b649809"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzMxNjI2",
+          "commit": {
+            "abbreviatedOid": "59cdc93"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "I would note which changes are wire breaking, but otherwise looks good.",
+          "createdAt": "2021-06-14T20:38:00Z",
+          "updatedAt": "2021-06-14T20:38:00Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzQ1OTcx",
+          "commit": {
+            "abbreviatedOid": "59cdc93"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-14T20:56:48Z",
+          "updatedAt": "2021-06-14T20:58:57Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "Maybe s/Fix/Simplify/? The old version wasn't broken. Just this new one's hopefully simpler.",
+              "createdAt": "2021-06-14T20:56:48Z",
+              "updatedAt": "2021-06-14T20:58:57Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzUwOTQ0",
+          "commit": {
+            "abbreviatedOid": "59cdc93"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T21:03:23Z",
+          "updatedAt": "2021-06-14T21:03:23Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "Yep, that's better!",
+              "createdAt": "2021-06-14T21:03:23Z",
+              "updatedAt": "2021-06-14T21:03:23Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzUwOTY0",
+          "commit": {
+            "abbreviatedOid": "59cdc93"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T21:03:25Z",
+          "updatedAt": "2021-06-14T21:03:26Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "```suggestion\r\n- Simplify ClientHelloOuterAAD generation (#438, #442)\r\n```",
+              "createdAt": "2021-06-14T21:03:25Z",
+              "updatedAt": "2021-06-14T21:03:26Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 460,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjY5ODgxNzYy",
+      "title": "Say that ECH acceptance is signaled at most once",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/460",
+      "state": "CLOSED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2021-06-14T21:16:55Z",
+      "updatedAt": "2021-06-15T00:15:03Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d43fba63cc37ca68467ad228f4b405a93b649809",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "accept-either-hrr-or-sh",
+      "headRefOid": "61a7c6aca6003305e7a47f089137ceea5dc712fe",
+      "closedAt": "2021-06-14T21:51:51Z",
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Thanks for not doing this; it is easier to do it twice and check it twice than have extra logic for not checking.",
+          "createdAt": "2021-06-15T00:15:03Z",
+          "updatedAt": "2021-06-15T00:15:03Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzY1MTQx",
+          "commit": {
+            "abbreviatedOid": "61a7c6a"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T21:19:40Z",
+          "updatedAt": "2021-06-14T21:19:40Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "I suppose either works, but is there a reason we want to do it this way over just having it be confirmed in both? (I figure both reduces the number of variations between HRR and non-HRR SH.)",
+              "createdAt": "2021-06-14T21:19:40Z",
+              "updatedAt": "2021-06-14T21:19:40Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzY1NDI5",
+          "commit": {
+            "abbreviatedOid": "61a7c6a"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T21:20:06Z",
+          "updatedAt": "2021-06-14T21:20:07Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "Though I suppose both means the client needs to check it.",
+              "createdAt": "2021-06-14T21:20:06Z",
+              "updatedAt": "2021-06-14T21:20:07Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzcyNjI0",
+          "commit": {
+            "abbreviatedOid": "61a7c6a"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T21:31:01Z",
+          "updatedAt": "2021-06-14T21:31:01Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "It seems like confirming in both is easier to implement. The only downside I see is that confirming in both requires a bit more hashing.",
+              "createdAt": "2021-06-14T21:31:01Z",
+              "updatedAt": "2021-06-14T21:31:01Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzczMjAw",
+          "commit": {
+            "abbreviatedOid": "61a7c6a"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T21:31:50Z",
+          "updatedAt": "2021-06-14T21:31:50Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "I'm fine either way, I just think this should be made explicit.",
+              "createdAt": "2021-06-14T21:31:50Z",
+              "updatedAt": "2021-06-14T21:31:50Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzgwOTk2",
+          "commit": {
+            "abbreviatedOid": "61a7c6a"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-14T21:44:13Z",
+          "updatedAt": "2021-06-14T21:44:13Z",
+          "comments": [
+            {
+              "originalPosition": 7,
+              "body": "It does seems simpler to do both (for client and server), and that has been my assumption here. I'd prefer if we did that.",
+              "createdAt": "2021-06-14T21:44:13Z",
+              "updatedAt": "2021-06-14T21:44:13Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 461,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjY5ODk5MzE5",
+      "title": "Say that acceptance will be confirmed twice in case of HRR",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/461",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2021-06-14T21:51:18Z",
+      "updatedAt": "2021-06-14T21:51:58Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d43fba63cc37ca68467ad228f4b405a93b649809",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "accept-both-hrr-and-sh",
+      "headRefOid": "ada32c0776a05ca270ed34877f87b0b72911d272",
+      "closedAt": "2021-06-14T21:51:58Z",
+      "mergedAt": "2021-06-14T21:51:58Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "ab293857e5c2f25b84670987873c7d19443408a8"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjgzMzg1MzY5",
+          "commit": {
+            "abbreviatedOid": "ada32c0"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-14T21:51:40Z",
+          "updatedAt": "2021-06-14T21:51:40Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 462,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjcyMTAwNDM4",
+      "title": "Editorial changes",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/462",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2021-06-17T02:10:01Z",
+      "updatedAt": "2021-06-17T03:26:29Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "ab293857e5c2f25b84670987873c7d19443408a8",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "editorial",
+      "headRefOid": "624779fdcad5ad37e740070a3164464f47f5da6f",
+      "closedAt": "2021-06-17T03:26:29Z",
+      "mergedAt": "2021-06-17T03:26:28Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "d3227bd57daab88a41b13888ec0cc2e88a85841a"
+      },
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Oops. \ud83e\udd26\u200d\u2642\ufe0f",
+          "createdAt": "2021-06-17T03:26:21Z",
+          "updatedAt": "2021-06-17T03:26:21Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njg1ODMzMDEz",
+          "commit": {
+            "abbreviatedOid": "624779f"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-17T03:25:30Z",
+          "updatedAt": "2021-06-17T03:25:30Z",
           "comments": []
         }
       ]
