@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 16 December 2021                                         Fastly
+Expires: 19 December 2021                                         Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                            14 June 2021
+                                                            17 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -43,7 +43,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 16 December 2021.
+   This Internet-Draft will expire on 19 December 2021.
 
 Copyright Notice
 
@@ -685,15 +685,6 @@ Table of Contents
    Note that these rules may change in the presence of an application
    profile specifying otherwise.
 
-   [[OPEN ISSUE: We currently require HRR-sensitive parameters to match
-   in ClientHelloInner and ClientHelloOuter in order to simplify client-
-   side logic in the event of HRR.  See https://github.com/tlswg/draft-
-   ietf-tls-esni/pull/316 for more information.  We might also solve
-   this by including an explicit signal in HRR noting ECH acceptance.
-   We need to decide if inner/outer variance is important for HRR-
-   sensitive parameters, and if so, how to best deal with it without
-   complicated client logic.]]
-
    The client might duplicate non-sensitive extensions in both messages.
    However, implementations need to take care to ensure that sensitive
    extensions are not offered in the ClientHelloOuter.  See Section 10.5
@@ -1183,7 +1174,7 @@ Table of Contents
    server overwrites the payload of the "encrypted_client_hello"
    extension with the following string:
 
-      accept_confirmation = HKDF-Expand-Label(
+      hrr_accept_confirmation = HKDF-Expand-Label(
          HKDF-Extract(0, ClientHelloInner1.random),
          "hrr ech accept confirmation",
          transcript_hrr_ech_conf,
@@ -1812,9 +1803,9 @@ Table of Contents
    [HTTPS-RR] Schwartz, B., Bishop, M., and E. Nygren, "Service binding
               and parameter specification via the DNS (DNS SVCB and
               HTTPS RRs)", Work in Progress, Internet-Draft, draft-ietf-
-              dnsop-svcb-https-05, 21 April 2021,
+              dnsop-svcb-https-06, 16 June 2021,
               <https://datatracker.ietf.org/doc/html/draft-ietf-dnsop-
-              svcb-https-05.txt>.
+              svcb-https-06.txt>.
 
    [I-D.ietf-tls-exported-authenticator]
               Sullivan, N., "Exported Authenticators in TLS", Work in
