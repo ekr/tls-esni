@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 19 December 2021                                         Fastly
+Expires: 30 December 2021                                         Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                            17 June 2021
+                                                            28 June 2021
 
 
                        TLS Encrypted Client Hello
@@ -43,7 +43,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 19 December 2021.
+   This Internet-Draft will expire on 30 December 2021.
 
 Copyright Notice
 
@@ -326,7 +326,7 @@ Table of Contents
            uint16 version;
            uint16 length;
            select (ECHConfig.version) {
-             case 0xfe0a: ECHConfigContents contents;
+             case 0xfe0c: ECHConfigContents contents;
            }
        } ECHConfig;
 
@@ -437,7 +437,7 @@ Table of Contents
    extension in ClientHelloInner.
 
        enum {
-          encrypted_client_hello(0xfe0b), (65535)
+          encrypted_client_hello(0xfe0c), (65535)
        } ExtensionType;
 
    The payload of the extension has the following structure:
@@ -469,8 +469,8 @@ Table of Contents
       "ECHConfigContents.cipher_suites" list.
 
    enc  The HPKE encapsulated key, used by servers to decrypt the
-      corresponding "payload" field.  This field is empty in
-      ClientHelloOuters sent in response to HelloRetryRequest.
+      corresponding "payload" field.  This field is empty in a
+      ClientHelloOuter sent in response to HelloRetryRequest.
 
    payload  The serialized and encrypted ClientHelloInner structure,
       encrypted using HPKE as described in Section 6.1.
@@ -525,8 +525,19 @@ Table of Contents
 
    When sending ClientHello, the client first computes ClientHelloInner,
    including any PSK binders.  It then computes a new value, the
-   EncodedClientHelloInner, by first making a copy of ClientHelloInner.
-   It then replaces the legacy_session_id field with an empty string.
+   EncodedClientHelloInner, which is the following structure:
+
+       struct {
+           ClientHello client_hello;
+           uint8 zeros[length_of_padding];
+       } EncodedClientHelloInner;
+
+   The "client_hello" field is computed by first making a copy of
+   ClientHelloInner and setting the "legacy_session_id" field to the
+   empty string.  Note this field uses the ClientHello structure,
+   defined in Section 4.1.2 of [RFC8446] which does not include the
+   Handshake structure's four byte header.  The "zeros" field MUST be
+   all zeroes.
 
    The client then MAY substitute extensions which it knows will be
    duplicated in ClientHelloOuter.  To do so, the client removes and
@@ -536,13 +547,19 @@ Table of Contents
    OuterExtensions, includes those which were removed from
    EncodedClientHelloInner, in the order in which they were removed.
 
-   Finally, EncodedClientHelloInner is serialized as a ClientHello
-   structure, defined in Section 4.1.2 of [RFC8446].  Note this does not
-   include the four-byte header included in the Handshake structure.
+   Finally, the client pads the message by setting the "zeros" field to
+   a byte string whose contents are all zeros and whose length is the
+   amount of padding to add.  Section 6.1.3 describes a recommended
+   padding scheme.
 
    The client-facing server computes ClientHelloInner by reversing this
-   process.  First it makes a copy of EncodedClientHelloInner and copies
-   the legacy_session_id field from ClientHelloOuter.  It then looks for
+   process.  First it parses EncodedClientHelloInner, interpreting all
+   bytes after "client_hello" as padding.  If any padding byte is non-
+   zero, the server MUST abort the connection with an
+   "illegal_parameter" alert.
+
+   Next it makes a copy of the "client_hello" field and copies the
+   "legacy_session_id" field from ClientHelloOuter.  It then looks for
    an "ech_outer_extensions" extension.  If found, it replaces the
    extension with the corresponding sequence of extensions in the
    ClientHelloOuter.  The server MUST abort the connection with an
@@ -551,8 +568,6 @@ Table of Contents
    *  Any referenced extension is missing in ClientHelloOuter.
 
    *  "encrypted_client_hello" appears in OuterExtensions.
-
-   *  OuterExtensions contains duplicate values.
 
    *  The extensions in ClientHelloOuter corresponding to those in
       OuterExtensions do not occur in the same order.
@@ -627,13 +642,10 @@ Table of Contents
 
    2.  It MUST NOT offer to resume any session for TLS 1.2 and below.
 
-   3.  It SHOULD contain TLS padding [RFC7685] as described in
-       Section 6.1.3.
-
-   4.  If it intends to compress any extensions (see Section 5.1), it
+   3.  If it intends to compress any extensions (see Section 5.1), it
        MUST order those extensions consecutively.
 
-   5.  It MUST include the "encrypted_client_hello" extension of type
+   4.  It MUST include the "encrypted_client_hello" extension of type
        "inner" as described in Section 5.  (This requirement is not
        applicable when the "encrypted_client_hello" extension is
        generated as described in Section 6.2.)
@@ -714,8 +726,8 @@ Table of Contents
    Next, the client determines the length L of encrypting
    EncodedClientHelloInner with the selected HPKE AEAD.  This is
    typically the sum of the plaintext length and the AEAD tag length.
-   The client fills in a "encrypted_client_hello" extension with the
-   outer variant of ClientECH with following values:
+   The client fills in an "encrypted_client_hello" extension with the
+   outer variant of ClientECH with the following values:
 
    *  "config_id", the identifier corresponding to the chosen ECHConfig
       structure;
@@ -765,9 +777,11 @@ Table of Contents
    generates a random PSK identity with the same length.  It also
    generates a random, 32-bit, unsigned integer to use as the
    "obfuscated_ticket_age".  Likewise, for each inner PSK binder, the
-   client generates random string of the same length.
+   client generates a random string of the same length.
 
-   If the server replies with a "pre_shared_key" extension in its
+   Per the rules of Section 6.1, the server is not permitted to resume a
+   connection in the outer handshake.  If ECH is rejected and the
+   client-facing server replies with a "pre_shared_key" extension in its
    ServerHello, then the client MUST abort the handshake with an
    "illegal_parameter" alert.
 
@@ -789,19 +803,27 @@ Table of Contents
    ClientHello extensions can be computed in this way.
 
    In contrast, clients do not know the longest SNI value in the client-
-   facing server's anonymity set without server input.  For the
-   "server_name" extension with length D, clients SHOULD use the
-   server's length hint L (ECHConfig.contents.maximum_name_length) when
-   computing the padding as follows:
+   facing server's anonymity set without server input.  Clients SHOULD
+   use the ECHConfig's "maximum_name_length" field as follows, where L
+   is the "maximum_name_length" value.
 
-   1.  If L >= D, add L - D bytes of padding.  This rounds to the
-       server's advertised hint, i.e.,
-       ECHConfig.contents.maximum_name_length.
+   1.  If the ClientHelloInner contained a "server_name" extension with
+       a name of length D, add max(0, L - D) bytes of padding.
 
-   2.  Otherwise, let P = 31 - ((D - 1) % 32), and add P bytes of
-       padding, plus an additional 32 bytes if D + P < L + 32.  This
-       rounds D up to the nearest multiple of 32 bytes that permits at
-       least 32 bytes of length ambiguity.
+   2.  If the ClientHelloInner did not contain a "server_name" extension
+       (e.g., if the client is connecting to an IP address), add L + 9
+       bytes of padding.  This is the length of a "server_name"
+       extension with an L-byte name.
+
+   Finally, the client SHOULD pad the entire message as follows:
+
+   1.  Let L be the length of the EncodedClientHelloInner with all the
+       padding computed so far.
+
+   2.  Let N = 31 - ((L - 1) % 32) and add N bytes of padding.
+
+   This rounds the length of EncodedClientHelloInner up to a multiple of
+   32 bytes, reducing the set of possible lengths across all clients.
 
    In addition to padding ClientHelloInner, clients and servers will
    also need to pad all other handshake messages that have sensitive-
@@ -973,10 +995,6 @@ Table of Contents
    a "decode_error" alert if it is invalid.  It otherwise ignores the
    extension and MUST NOT use the retry keys.
 
-   [[OPEN ISSUE: if the client sends a GREASE "encrypted_client_hello"
-   extension, should it also send a GREASE "pre_shared_key" extension?
-   If not, GREASE+ticket is a trivial distinguisher.  See issue #384.]]
-
    Offering a GREASE extension is not considered offering an encrypted
    ClientHello for purposes of requirements in Section 6.  In
    particular, the client MAY offer to resume sessions established
@@ -985,7 +1003,8 @@ Table of Contents
 7.  Server Behavior
 
    Servers that support ECH play one of two roles, depending on the
-   payload of the "encrypted_client_hello" extension in the ClientHello:
+   payload of the "encrypted_client_hello" extension in the initial
+   ClientHello:
 
    *  If "ClientECH.type" is "outer", then the server acts as a client-
       facing server and proceeds as described in Section 7.1 to extract
@@ -1180,14 +1199,8 @@ Table of Contents
          transcript_hrr_ech_conf,
          8)
 
-   As above, the payload of "encrypted_client_hello" is expected to be a
-   "ClientECH" with "ClientECH.type" is "inner".  If this is not the
-   case, the backend server MUST abort the handshake with an
-   "illegal_parameter" alert.
-
-   Note that, in case of HelloRetryRequest, the backend server confirms
-   ECH acceptance twice: first In HelloRetryRequest, as described here;
-   and then in the subsequent ServerHello, as described above.
+   In the subsequent ServerHello message, the backend server sends the
+   accept_confirmation value as described in Section 7.2.
 
 8.  Compatibility Issues
 
@@ -1774,7 +1787,7 @@ Table of Contents
    IANA is requested to create the following three entries in the
    existing registry for ExtensionType (defined in [RFC8446]):
 
-   1.  encrypted_client_hello(0xfe0b), with "TLS 1.3" column values set
+   1.  encrypted_client_hello(0xfe0c), with "TLS 1.3" column values set
        to "CH, HRR, EE", and "Recommended" column set to "Yes".
 
    2.  ech_outer_extensions(0xfd00), with the "TLS 1.3" column values
@@ -1830,11 +1843,6 @@ Table of Contents
               Applications (IDNA): Definitions and Document Framework",
               RFC 5890, DOI 10.17487/RFC5890, August 2010,
               <https://datatracker.ietf.org/doc/html/rfc5890>.
-
-   [RFC7685]  Langley, A., "A Transport Layer Security (TLS) ClientHello
-              Padding Extension", RFC 7685, DOI 10.17487/RFC7685,
-              October 2015,
-              <https://datatracker.ietf.org/doc/html/rfc7685>.
 
    [RFC7918]  Langley, A., Modadugu, N., and B. Moeller, "Transport
               Layer Security (TLS) False Start", RFC 7918,
