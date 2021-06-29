@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-17T03:26:48.246097+00:00",
+  "timestamp": "2021-06-29T00:49:42.514999+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10508,15 +10508,15 @@
       "id": "MDU6SXNzdWU4OTE0MzUxMjY=",
       "title": "Embedded ClientHello padding complicates whole-input padding schemes",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/433",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Filing this as a topic for discussion. I think \"we don't like these padding strategies\" or \"that's not too complicated\" are perfectly plausible answers.\r\n\r\nSo, we need to pad the ECH payload to avoid revealing information via length. It seems to me there are two plausible strategies for padding, and you could do one or both of them. (You could do both by applying the first, then applying the second.)\r\n\r\n_NB: I don't know what the overall consensus is on padding strategies. My assumption has been that there isn't one and we're building flexibility into protocols so we can figure it out. The below is a summary of my current thinking, but there are probably lots of well-established ideas I don't know._ \r\n\r\n**Pad particular fields you are trying to hide**\r\nThere may be a particular field in your message with a length distribution you would like to hide. Perhaps some anonymity set has server name lengths up to 96 bytes. So you arrange for the client to know this, and the client adds 96 - len(server_name) extra bytes to the ClientHello somewhere. This is easy to reason about in isolation, but only considers individual fields. Information about other fields still leaks.\r\n\r\n**Generically reduce the range of possible lengths**\r\nYou may also just try to generically reduce the range of the function. Maybe you round to a multiple of 32, or round to the next power of some R > 1. This may still leak information: padding a multiple of 32 still distinguishes (big server name, big ALPN list) and (small server name, small ALPN list) when the variance is more than 32 bytes. But it pretty uniformly reduces the information leaked in general, which can help increase anonymity sets. For example, an HTTP client will always sends an ALPN of {h2, http/1.1}, but a tiny amount of overall padding can help combine HTTP ClientHellos with a non-HTTP client that might have a slightly different ALPN set. It can also mitigate mistakes. For instance, TLS tickets often embed the server name. If the server forgets to pad that when minting the ticket, the first strategy alone will leak this.\r\n\r\nThe recommended padding scheme currently only does the first kind. We add padding for server_name and largely ignore the other fields. Suppose some client wanted to additionally use the second strategy. The order of operations here is fussy and interleaves bits of ClientHelloInner and EncodedClientHelloInner:\r\n\r\n* EncodedClientHelloInner has a PSK binder\r\n* ...which depends on the non-PSK extensions of ClientHelloInner\r\n* ...which includes the padding extension\r\n* ...which depends on the length of the non-padding extensions of EncodedClientHelloInner\r\n* ...which depends on the length of the PSK binder, the non-PSK non-padding extensions of ClientHelloInner, which of them will be compressed\r\n\r\nThis is not actually a circular dependency. But it's a place the ClientHelloInner and EncodedClientHelloInner are awkward linked together. Probably the way to do it is to maintain a count of how much smaller EncodedClientHelloInner will be and subtract that from the ClientHelloInner as you construct and pad it.\r\n\r\n*If* we think this is a problem, the fix is pretty straightforward: add padding to EncodedClientHelloInner itself. Something like:\r\n\r\n```\r\nstruct {\r\n  ClientHello client_hello;\r\n  opaque padding<0..2^16-1>;\r\n} EncodedClientHelloInner;\r\n```\r\n\r\nNow the ClientHelloInner no longer depends on the length of the EncodedClientHelloInner. Is this worth doing?",
       "createdAt": "2021-05-13T22:31:28Z",
-      "updatedAt": "2021-06-04T03:28:44Z",
-      "closedAt": null,
+      "updatedAt": "2021-06-28T13:47:02Z",
+      "closedAt": "2021-06-28T13:47:02Z",
       "comments": [
         {
           "author": "davidben",
@@ -10718,7 +10718,7 @@
       "labels": [],
       "body": "Currently, we reuse some bytes of SH.random to signal ECH acceptance when HRR does not occur. Based on [discussion within the context of the HRR design team](https://github.com/tlswg/draft-ietf-tls-esni/wiki/HRR-Design-Team), it may be fruitful to reconsider where this signal goes. Should it in a cleartext extension? Note that this was previously discussed in the context of the original [trial decryption issue](https://github.com/tlswg/draft-ietf-tls-esni/issues/274). It may be worth revisiting this signal's placement as it pertains to the longterm viability of HRR. \r\n\r\ncc @sftcd, @ekr, @martinthomson, @davidben, @cjpatton ",
       "createdAt": "2021-06-03T21:01:35Z",
-      "updatedAt": "2021-06-11T15:42:49Z",
+      "updatedAt": "2021-06-22T14:52:23Z",
       "closedAt": null,
       "comments": [
         {
@@ -10727,6 +10727,20 @@
           "body": "Trying to align them is attractive for consistency, but I think they're actually doing slightly different things. The HRR and SH flows have a fundamental difference to what kind of \"don't stick out\" goals are feasible. (HRR being some bytes rather than a boolean seems to mostly be an HRR-injection mitigation.)\r\nhttps://github.com/tlswg/draft-ietf-tls-esni/issues/450#issuecomment-859667016\r\n\r\nThough this is unsatisfying and maybe I'm missing a way this difference isn't actually fundamental.",
           "createdAt": "2021-06-11T15:42:49Z",
           "updatedAt": "2021-06-11T15:42:49Z"
+        },
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Making ECH acceptance an extension instead of SH.random seems like a good idea if it'll reduce the likelihood of issues with HRR.\r\n\r\n> passively inferring whether a server is capable of ECH. (Note that whether or not a server is capable of ECH depends on the attacker\u2019s ability to actively probe, and active attackers are consistent with the ECH threat model.)\r\n\r\nI don't think this is a big deal since an attacker can always just try to get the HTTPS RR from DNS to see if the server supports ECH. It's not passive, but it's easy.",
+          "createdAt": "2021-06-22T01:00:24Z",
+          "updatedAt": "2021-06-22T01:00:24Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I think this is a question we might try to answer in the initial deployment. Something browsers might consider doing is exercise the ECH codepoint in the server's response by triggering HRR in the inner handshake for some fraction of connection attempts. If these handshake fail at a significantly higher rate then other handshakes, then we know we might have a problem.",
+          "createdAt": "2021-06-22T14:52:23Z",
+          "updatedAt": "2021-06-22T14:52:23Z"
         }
       ]
     },
@@ -10766,7 +10780,7 @@
       "labels": [],
       "body": "With #423 we will send an explicit signal of whether ECH was accepted prior to HRR. The mechanism for this is an ECH extension sent by the backend server that contains a pseudorandom string derived from the inner handshake. We need to decide if/how to grease this extension.",
       "createdAt": "2021-06-07T17:57:48Z",
-      "updatedAt": "2021-06-11T15:38:33Z",
+      "updatedAt": "2021-06-24T22:09:16Z",
       "closedAt": null,
       "comments": [
         {
@@ -10810,6 +10824,41 @@
           "body": "> Don't update the ECH extension\r\n\r\nSorry, this part of my suggestion above doesn't work. I think you need the client to refresh it, otherwise you determine if ECH was accepted just by looking at whether the client changed the extension.\r\n\r\nThat said, GREASEing this may not be all that useful. It's not too difficult to tell if a server that sent HRR did so with ECH or not, if you're willing to probe the server's behavior on a parallel connection. First, there's this pretty straightforward version:\r\n\r\n1. Observe ClientHello and HelloRetryRequest pair from a client and server. Note this only happens if the (client, server) pair would naturally negotiate HRR.\r\n2. Replay ClientHello to that server on a separate connection. You should get HelloRetryRequest with the same parameters because the server's parameter selection is deterministic. (Let's suppose the server did not need to sporadically request a cookie.)\r\n3. See if HelloRetryRequest.ech contained the exact same bytes or not.\r\n\r\nHRR contains no server entropy, replaying an ECH ClientHello will give you something consistent, while a naive GREASED implementation will give you different values. We could fix this in one of two ways:\r\n\r\n* HRR GREASE should, instead of random bytes, do something deterministic like KDF(server_secret, client_hello), or\r\n* Change ECH confirmation to be a concatenation of some server entropy and the signal computed over the entropy.\r\n\r\nBut, for that fuss, it doesn't plug the more fundamental distinguisher, which is probably hopeless:\r\n\r\n1. Observe ClientHello and HelloRetryRequest pair from a client and server again.\r\n2. Replay ClientHello to that server on a separate connection. You should get HelloRetryRequest with the same parameters again.\r\n3. Second a second ClientHello with a plausible ClientHelloOuter2 and random bytes for the encrypted payload.\r\n4. If the server accepted ECH, it will attempt to decrypt the random bytes, fail, and abort the connection. If the server rejected ECH, it will ignore the payload and handshake with ClientHelloOuter2.\r\n\r\nThis one seems pretty much fundamental. Deciding ECH at ServerHello sets up handshake secrets at the same time. But deciding ECH at HRR means the server has committed to looking at ClientHelloOuter vs. ClientHelloInner too early. (This is true whether we have an acceptance signal at the client or not. Even in the \"apply HRR to both ClientHellos\" model, the server has already made a decision, because it needed to in order to decide on HRR at all. That model just had the client learn the decision late.)",
           "createdAt": "2021-06-11T15:38:33Z",
           "updatedAt": "2021-06-11T15:38:33Z"
+        },
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> Er, right, I always forget whether our phrasing believes it's the backend or client-facing server responding on ECH reject.\r\n\r\n> In order for ECH GREASE to work, we need ClientHelloOuter(ech=undecryptable, server_name=A) and ClientHelloOuter(ech=ClientHelloInner(server_name=A)) to result in equivalent handshakes. We could formulate that by saying the client-facing server is purely a ClientHello dispatcher and, reject or accept, it's a backend server you're talking to. Or we could say that, in ECH reject, you're talking to the client-facing server and we assume client-facing server and backend server respond equivalently to server_name=A. If it's the latter then, yeah, this should apply to the client-facing server as well.\r\n\r\nIt only makes sense to me for the client-facing server to be responding on ECH reject. If ECH is rejected, how can it even be expected to know what backend server the client is trying to talk to?",
+          "createdAt": "2021-06-21T21:52:56Z",
+          "updatedAt": "2021-06-21T21:52:56Z"
+        },
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I think not sticking out is a lost cause (and adds too much complexity), so I don't think it matters whether any GREASE-ing is deterministic or random.",
+          "createdAt": "2021-06-22T00:46:12Z",
+          "updatedAt": "2021-06-22T00:47:04Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> It only makes sense to me for the client-facing server to be responding on ECH reject. If ECH is rejected, how can it even be expected to know what backend server the client is trying to talk to?\r\n\r\nThe outer ClientHello contains a server name. If you believe the client-facing server is just a dispatcher, then maybe you just dispatch. In particular, if `example.com`'s DNS points to some IP address A and ECH keys, a client that didn't support that ECH cipher, didn't support ECH, or otherwise couldn't get the DNS record would connect to A without offering ECH. But it may still send ECH GREASE, trigger the client-facing server logic, and hit the decryption failure case to handshake ClientHelloOuter.\r\n\r\nAlthough arguably this is already covered by the existing text:\r\n\r\n> Otherwise, if all candidate ECHConfig values fail to decrypt the extension, the client-facing server MUST ignore the extension and proceed with the connection using ClientHelloOuter. This connection proceeds as usual, except [...]\r\n\r\nhttps://tlswg.org/draft-ietf-tls-esni/draft-ietf-tls-esni.html#section-7.1-12\r\n\r\nPresumably for most deployments, \"as usual\" would cover whatever name-based dispatch it's happy to do on ClientHelloOuter.\r\n\r\n> I think not sticking out is a lost cause (and adds too much complexity), so I don't think it matters whether any GREASE-ing is deterministic or random.\r\n\r\nI think I agree that HRR sticking out is hopeless. But then why even bother GREASE-ing here?",
+          "createdAt": "2021-06-23T20:09:58Z",
+          "updatedAt": "2021-06-23T20:09:58Z"
+        },
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> I think I agree that HRR sticking out is hopeless. But then why even bother GREASE-ing here?\r\n\r\nThe usual reason: to prevent the ossification of middleboxes.",
+          "createdAt": "2021-06-24T21:35:56Z",
+          "updatedAt": "2021-06-24T21:35:56Z"
+        },
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> Presumably for most deployments, \"as usual\" would cover whatever name-based dispatch it's happy to do on ClientHelloOuter.\r\n\r\nAh, right. It's the back-end server then (unless the client-facing server has the name in the CHO, but then you could consider the client-facing server to also be playing the role of a backend server).",
+          "createdAt": "2021-06-24T22:09:16Z",
+          "updatedAt": "2021-06-24T22:09:16Z"
         }
       ]
     },
@@ -10862,12 +10911,118 @@
       "author": "martinthomson",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
-      "labels": [],
+      "labels": [
+        "editorial"
+      ],
       "body": "It took me AGES just now to find where ech_outer_extensions was defined.\r\n\r\nThe table of contents should be useful for finding important things like what to do (the current structure works OK for this, though it might be better) and to learn what the format and semantics of protocol elements is.\r\n\r\nA careful reorganization of content is probably well overdue.",
       "createdAt": "2021-06-08T23:36:55Z",
-      "updatedAt": "2021-06-08T23:36:55Z",
+      "updatedAt": "2021-06-21T20:34:09Z",
       "closedAt": null,
       "comments": []
+    },
+    {
+      "number": 463,
+      "id": "MDU6SXNzdWU5Mjc1NzI1NjQ=",
+      "title": "Changes for draft-12 (was \"Value of ECHConfig.version in draft-11?\")",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/463",
+      "state": "CLOSED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "ECHConfig is defined as\r\n\r\n> ```\r\n>       struct {\r\n>           uint16 version;\r\n>           uint16 length;\r\n>           select (ECHConfig.version) {\r\n>             case 0xfe0a: ECHConfigContents contents;\r\n>           }\r\n>       } ECHConfig;\r\n> ```\r\n\r\nbut the text below it says\r\n\r\n>   Beginning with draft-08, the version is the same as the code point\r\n>    for the \"encrypted_client_hello\" extension.  Clients MUST ignore\r\n>    any \"ECHConfig\" structure with a version they do not support.\r\n\r\nThe intention was to bump ECHConfig.version from 0xfe0a to 0xfe0b for draft-11, but this got missed by https://github.com/tlswg/draft-ietf-tls-esni/pull/458. (I wrote the PR, so I apologize for my part in missing this.) How do folks think we should resolve this? Do we need to cut a new draft with the ambiguity fixed?",
+      "createdAt": "2021-06-22T19:39:27Z",
+      "updatedAt": "2021-06-28T23:50:19Z",
+      "closedAt": "2021-06-28T23:50:18Z",
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Oh whoops, nice catch! Using `0xfe0a` definitely won't work since the format and corresponding ClientECH extension has changed. I suppose all the implementors could just agree to mentally fix this typo when reading the draft, but may as well cut draft-12. Draft numbers are cheap.",
+          "createdAt": "2021-06-22T19:43:41Z",
+          "updatedAt": "2021-06-22T19:43:41Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "We could try to pick up some editorial changes, too, like those suggested in #454.",
+          "createdAt": "2021-06-22T19:46:15Z",
+          "updatedAt": "2021-06-22T19:46:15Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I'd also personally be pretty happy to have #443 in there, but also fine to skip it for what's supposed to be a small bugfix draft snapshot.",
+          "createdAt": "2021-06-22T19:50:43Z",
+          "updatedAt": "2021-06-22T19:50:43Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 22/06/2021 20:43, David Benjamin wrote:\n> Oh whoops, nice catch! Using `0xfe0a` definitely won't work since the\n> format and corresponding ClientECH extension has changed. I suppose\n> all the implementors could just agree to mentally fix this typo when\n> reading the draft, but may as well cut draft-12. Draft numbers are\n> cheap.\n\n+1\n\nI've not checked recent editorial changes but they're\nprobably fine too.\n\nS\n\n> \n",
+          "createdAt": "2021-06-22T19:59:21Z",
+          "updatedAt": "2021-06-22T19:59:21Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I'd be happy to take #443 in draft-12 as well, though I'm inclined to think this should strictly be a bugfix/editorial draft. I'd say let's wait until Chris W. gets off back from PTO and let him make the call. Unless we're in a hurry, in which case we could ping one of the other authors to merge our changes and cut a draft.\r\n",
+          "createdAt": "2021-06-22T20:33:07Z",
+          "updatedAt": "2021-06-22T21:31:23Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Closing as resolved.",
+          "createdAt": "2021-06-28T23:50:18Z",
+          "updatedAt": "2021-06-28T23:50:18Z"
+        }
+      ]
+    },
+    {
+      "number": 466,
+      "id": "MDU6SXNzdWU5Mjg2MDA1NjQ=",
+      "title": "Client behavior if the HRR signal is wrong",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/466",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "{{client-hrr}} says the client assumes ECH was accepted if the signal matches, but it doesn't say what to do if the signal doesn't match. Is it an error, or do you ignore it?\r\n\r\nRelated to #450, though whether we decide to do that, we need to write down *something* in the meantime.",
+      "createdAt": "2021-06-23T20:10:27Z",
+      "updatedAt": "2021-06-28T15:36:01Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Seems reasonable to presume rejection, as if the extension weren't present at all, particularly if we end up GREASEing the extension.",
+          "createdAt": "2021-06-25T00:17:37Z",
+          "updatedAt": "2021-06-25T00:17:37Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Right now the server's not supposed to send it at all. Normally if the peer sends invalid things, we make it an error. But, yeah, allowing it and presuming rejection is plausible when we GREASE it. But that's not currently in the draft, and I'm not sure how coherent GREASEing it actually is. Right now, draft-11 as currently published is ambiguous, which makes implementing it hard.",
+          "createdAt": "2021-06-25T20:50:09Z",
+          "updatedAt": "2021-06-25T20:50:09Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I agree we need to say something here. The way I interpreted it in my implementation is: presume ECH acceptance if the ECH extension is present and its payload matches the acceptance signal; otherwise, presume rejection. I think we should try to spell this behavior in a way that make sense.",
+          "createdAt": "2021-06-25T21:31:57Z",
+          "updatedAt": "2021-06-25T21:31:57Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "+1 to assuming rejection, since this is exactly what we do in the non HRR case. @davidben, will you be able to prep a PR for this today? We can include this clarification in -12. (Clarifying that clients should abort if the extension contents are malformed, e.g., of the wrong length, seems fine. But if the signal doesn't match, then I think we should just assume rejection, since that would admit greasing the signal.)",
+          "createdAt": "2021-06-28T15:32:51Z",
+          "updatedAt": "2021-06-28T15:36:01Z"
+        }
+      ]
     }
   ],
   "pulls": [
@@ -29181,15 +29336,15 @@
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
-      "body": "Closes #264.",
+      "body": "Addresses #264.",
       "createdAt": "2020-09-30T18:51:06Z",
-      "updatedAt": "2021-06-11T18:00:05Z",
+      "updatedAt": "2021-06-22T21:26:41Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "f08b6cf4ab8378723f7b4ab36a1d68e29b1227a0",
+      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "server_side_padding",
-      "headRefOid": "95befd9495544673d7c9ed8d97ab2e994723ebdd",
+      "headRefOid": "d5115276eefbf87699c1c6039b4a60baa16b0d84",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -38690,7 +38845,7 @@
       "labels": [],
       "body": "The design is based on @davidben's sketch.\r\n\r\nCloses #374.\r\nCloses #373.\r\nCloses #358.\r\nCloses #333.",
       "createdAt": "2021-03-25T23:32:17Z",
-      "updatedAt": "2021-06-11T21:43:54Z",
+      "updatedAt": "2021-06-17T21:17:36Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "95a3fb44cc7703ab33ef11a9781f51962f3d0e0b",
@@ -38703,26 +38858,6 @@
       "mergeCommit": null,
       "comments": [],
       "reviews": [
-        {
-          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjIzNzM2NDUx",
-          "commit": {
-            "abbreviatedOid": "bf2a4a1"
-          },
-          "author": "chris-wood",
-          "authorAssociation": "COLLABORATOR",
-          "state": "PENDING",
-          "body": "",
-          "createdAt": "2021-03-29T23:50:06Z",
-          "updatedAt": "2021-03-29T23:50:06Z",
-          "comments": [
-            {
-              "originalPosition": 91,
-              "body": "```suggestion\r\nAs described in {{server-hrr}, the HelloRetryRequestInner handshake message is\r\n```\r\nHmm... I wonder why CI didn't complain?",
-              "createdAt": "2021-03-29T23:50:06Z",
-              "updatedAt": "2021-03-30T19:56:32Z"
-            }
-          ]
-        },
         {
           "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjIyNTQyMjE5",
           "commit": {
@@ -40719,7 +40854,7 @@
       "labels": [],
       "body": "Currently we distinguish between CHI and CHO by sending \"ech_is_inner\"\r\nin CHI and \"encrypted_client_hello\" in CHO. A future change will signal\r\nECH acceptance in HRR using the \"encrypted_client_hello\" codepoint. This\r\nwould violate 8446's rule that disallows unsolicited extensions. In\r\npreparation for this change, this commit removes the \"ech_is_inner\"\r\nextension and adds a byte to the payload of \"encrypted_client_hello\"\r\nthat signals to the server whether the message is CHI or CHO.",
       "createdAt": "2021-04-15T22:37:44Z",
-      "updatedAt": "2021-06-11T22:21:02Z",
+      "updatedAt": "2021-06-17T21:17:41Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "f08b6cf4ab8378723f7b4ab36a1d68e29b1227a0",
@@ -41051,7 +41186,7 @@
       "labels": [],
       "body": "Based on #422 (review that first!).\r\n\r\nIf an HRR is sent in response to CH, the client doesn't know whether ECH\r\nwas accepted. As a result, it doesn't know whether it's CHI or CHO that\r\nneeds to be updated. The spec attempts to address this ambiguity by\r\nrequiring that all HRR-sensitive parameters are the same in CHI and CHO.\r\nThis criterion is currently underspecified, and it's not clear how to\r\nmake sure that future extensions don't violate it. (See issue #374.)\r\n\r\nThis change solves this ambiguity by adding an explicit signal of ECH\r\nacceptance to HRR. This violates \"don't stick out\" whenever an HRR is\r\ninevitable for a particular client and server configuration. However,\r\nthis change is designed to prevent an active attacker from\r\ndistinguishing real ECH from GREASE ECH by triggering HRR.\r\n\r\nCloses #374 by providing an alternative to PR #407.\r\nCloses #373.\r\nCloses #358.\r\n\r\n",
       "createdAt": "2021-04-15T23:51:53Z",
-      "updatedAt": "2021-06-11T22:21:00Z",
+      "updatedAt": "2021-06-17T21:17:39Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "f08b6cf4ab8378723f7b4ab36a1d68e29b1227a0",
@@ -43349,24 +43484,26 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjYxNDEyODgx",
       "title": "Move ClientHello padding to the encoding.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/443",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #433. This PR does four things:\r\n\r\n1. Apply the EncodedClientHelloInner change suggested in #433.\r\n\r\n2. Adjust the recommended padding scheme to round the overall length to\r\n   a multiple of 32, now that this is fairly easy to compute.\r\n\r\n3. It fixes an mistake in the recommended padding scheme. The server\r\n   sets maximum_name_length to the longest *name*, but the client\r\n   computes padding based on the server_name *extension*. We're\r\n   miscounting 7 bytes of extension overhead and effectively are using\r\n   maximum_name_length - 7 instead of maximum_name_length.\r\n\r\n4. It defines what to do if you aren't sending SNI. While unlikely to\r\n   happen in practice (no way to get an ECHConfig), implementations will\r\n   need to handle this. The application may well call SetECHConfigList()\r\n   without SetServerName() and it's rude to crash. It's pretty obvious what\r\n   to do, so just define it.\r\n\r\n(If folks would rather the PR only do a subset of these, I can defer the more controversial bits to other PRs. They all touched the same text, so it was easier to just do them all.)",
       "createdAt": "2021-06-04T03:28:07Z",
-      "updatedAt": "2021-06-14T17:24:11Z",
+      "updatedAt": "2021-06-28T13:47:02Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "1ca01023a5dacf897b0a5c3faf1fecd356bf4cdf",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "encoded-padding",
-      "headRefOid": "4b3a48cff0f2edb4ce88340a0ec3718e114219a9",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "24b0cc3eeaf31fe68bdd57f593153f8e0c204d8a",
+      "closedAt": "2021-06-28T13:47:02Z",
+      "mergedAt": "2021-06-28T13:47:02Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "4bc468f47b56add741b26616ee62b2b57c0e4a11"
+      },
       "comments": [
         {
           "author": "davidben",
@@ -43395,6 +43532,13 @@
           "body": "Rebased.\r\n\r\n(Man, who is this jerk who keeps causing merge conflicts with my PRs? Let's see... oh, it's @davidben. That guy is the worst! :-D)",
           "createdAt": "2021-06-08T22:43:14Z",
           "updatedAt": "2021-06-08T22:43:14Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Given positive support here and on the list, I'm merging this to include in the next version of the draft.",
+          "createdAt": "2021-06-28T13:46:58Z",
+          "updatedAt": "2021-06-28T13:46:58Z"
         }
       ],
       "reviews": [
@@ -43798,6 +43942,59 @@
               "updatedAt": "2021-06-14T17:24:11Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njg5OTg3OTY1",
+          "commit": {
+            "abbreviatedOid": "4b3a48c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-22T20:56:15Z",
+          "updatedAt": "2021-06-22T20:56:15Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njg5OTkzMjA5",
+          "commit": {
+            "abbreviatedOid": "4b3a48c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-22T21:02:35Z",
+          "updatedAt": "2021-06-22T21:02:35Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "nit (here and below):\r\n```suggestion\r\nFinally, the client determines the number of padding bytes, length_of_padding, and sets the\r\n```",
+              "createdAt": "2021-06-22T21:02:35Z",
+              "updatedAt": "2021-06-22T21:02:35Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkwODE2MzY3",
+          "commit": {
+            "abbreviatedOid": "4b3a48c"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-23T15:24:45Z",
+          "updatedAt": "2021-06-23T15:24:45Z",
+          "comments": [
+            {
+              "originalPosition": 32,
+              "body": "Well, N is referenced immediately afterwards and elsewhere we've used capital letters for random variables in prose. Note RFC8446 never utters length_of_padding in prose either. (Really what's going on here is that this is a questionably valid TLS message. The TLS message syntax is typically self-delimiting. But it's silly to add a length prefix here.)\r\n\r\nI'll rewrite this to not reference a variable name.",
+              "createdAt": "2021-06-23T15:24:45Z",
+              "updatedAt": "2021-06-23T15:24:45Z"
+            }
+          ]
         }
       ]
     },
@@ -44087,7 +44284,7 @@
       "labels": [],
       "body": "Based on #423.\r\nCloses #448.\r\n\r\nChanges the acceptance signal to use HKDF-Extract(0, ClientHelloInner.random) as the PRK.",
       "createdAt": "2021-06-07T17:16:14Z",
-      "updatedAt": "2021-06-11T22:23:27Z",
+      "updatedAt": "2021-06-17T21:17:45Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "9f9f26ddcefc771f3e2b77aa75a824f76f3cf981",
@@ -44867,15 +45064,15 @@
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
-      "body": "[EDITED] Closes #264 by introducing a new handshake message that contains padding. This has at least ~two advantages~[one advantage] over #313 (padding extension):\r\n\r\n1. [@davidben correctly points out in the comments that we still need the client to solicit this message.] ~In #313, the client solicit server padding by sending it an extension, which itself contains padding. This is kind of a neat design, but doesn't address the issues pointed out in #433 and which are solved by #443 (move client-side padding to CH encoding). If we take #443, then the client would need to solicit server padding with an empty extension. (Or else we bend the extensions rules.)~\r\n\r\n2. In #313, the server's padding appears in EncryptedExtensions. Ideally, the length of the padding take into account the Certificate message selected for the connection. This means the server needs to select Certificate before it finishes EncryptedExtensions. Here, the Padding message immediately precedes Finished, making it easier to implement a comprehensive padding scheme. [We can even account for the signature length in CertificateVerify, which varies widely depending on which signing algorithm is used.]",
+      "body": "Addresses #264. (Alternative to #313.)",
       "createdAt": "2021-06-11T21:32:36Z",
-      "updatedAt": "2021-06-15T15:52:24Z",
+      "updatedAt": "2021-06-22T20:35:11Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "ab293857e5c2f25b84670987873c7d19443408a8",
+      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "padding_message",
-      "headRefOid": "e0fbe9b6a134a3394cd08f9e532d4dbafe63cb21",
+      "headRefOid": "2d33fe2f846fd199017522fa6d607555bc162037",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -44929,6 +45126,27 @@
           "body": "Rebased (still need to address the design comments).",
           "createdAt": "2021-06-15T15:52:24Z",
           "updatedAt": "2021-06-15T15:52:24Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> Some reorganization is probably in order.\r\n\r\nYeah it's awkward :grimacing: I was trying to avoid refactoring too much with this PR. What do you think about moving all of the padding bits into a single section? Something like:\r\n```\r\n# Handshake Padding\r\n\r\n## ClientHelloInner Padding\r\n\r\n[@davidben's scheme in #443].\r\n\r\n## Padding the Rest of the Handshake\r\n\r\n[Defines the Padding message and how it's used.]\r\n\r\n## Recommended Padding Schemes\r\n\r\n### Client\r\n\r\n[Recommend a way to compute the padding length for EncodedClientHelloInner and the client's Padding message]\r\n\r\n### Backend Server\r\n\r\n[Recommend a way to compute the padding length for the server's Padding message]\r\n```\r\n\r\n",
+          "createdAt": "2021-06-18T00:52:21Z",
+          "updatedAt": "2021-06-18T00:52:21Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "That would certainly be better.  I would put that down the document, with forward references from the other sections.",
+          "createdAt": "2021-06-18T01:08:45Z",
+          "updatedAt": "2021-06-18T01:08:45Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Squashed. (@martinthomson, I'm gonna wait on editorial changes until #443 lands.)",
+          "createdAt": "2021-06-22T20:35:11Z",
+          "updatedAt": "2021-06-22T20:35:11Z"
         }
       ],
       "reviews": [
@@ -45051,6 +45269,39 @@
               "updatedAt": "2021-06-15T15:12:29Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njg2OTA2OTIz",
+          "commit": {
+            "abbreviatedOid": "d64ff6b"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-17T22:52:05Z",
+          "updatedAt": "2021-06-17T22:52:05Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "@martinthomson and @davidben, I've rebased this PR and updated it with David's construction. Please have another look.\r\n",
+              "createdAt": "2021-06-17T22:52:05Z",
+              "updatedAt": "2021-06-17T22:52:05Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njg2OTI0NjU3",
+          "commit": {
+            "abbreviatedOid": "d64ff6b"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "This structure is weird.  The section on padding talks about both, but only defines half of one of those (without a subsection).  The other padding stuff is somewhere else entirely.\r\n\r\nSome reorganization is probably in order.",
+          "createdAt": "2021-06-17T23:34:56Z",
+          "updatedAt": "2021-06-17T23:34:56Z",
+          "comments": []
         }
       ]
     },
@@ -45066,7 +45317,7 @@
       "labels": [],
       "body": "cc/ @chris-wood ",
       "createdAt": "2021-06-14T17:48:47Z",
-      "updatedAt": "2021-06-14T19:09:19Z",
+      "updatedAt": "2021-06-17T21:17:25Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "1ca01023a5dacf897b0a5c3faf1fecd356bf4cdf",
@@ -45218,7 +45469,7 @@
       "labels": [],
       "body": "",
       "createdAt": "2021-06-14T21:16:55Z",
-      "updatedAt": "2021-06-15T00:15:03Z",
+      "updatedAt": "2021-06-17T21:17:22Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "d43fba63cc37ca68467ad228f4b405a93b649809",
@@ -45353,7 +45604,7 @@
       "labels": [],
       "body": "",
       "createdAt": "2021-06-14T21:51:18Z",
-      "updatedAt": "2021-06-14T21:51:58Z",
+      "updatedAt": "2021-06-17T21:17:20Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "d43fba63cc37ca68467ad228f4b405a93b649809",
@@ -45395,7 +45646,7 @@
       "labels": [],
       "body": "",
       "createdAt": "2021-06-17T02:10:01Z",
-      "updatedAt": "2021-06-17T03:26:29Z",
+      "updatedAt": "2021-06-17T21:17:49Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "ab293857e5c2f25b84670987873c7d19443408a8",
@@ -45430,6 +45681,377 @@
           "createdAt": "2021-06-17T03:25:30Z",
           "updatedAt": "2021-06-17T03:25:30Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 464,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njc1NzcyNjAx",
+      "title": "Make ECHConfig.version match the codepoint",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/464",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "To be included with #463.\r\n\r\nNote that this is a wire-breaking change that should have landed in draft-11, but didn't.",
+      "createdAt": "2021-06-22T21:30:40Z",
+      "updatedAt": "2021-06-28T15:26:44Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "bugfix",
+      "headRefOid": "88d4aec5a171f6d0422badae7ee05b8180f9adeb",
+      "closedAt": "2021-06-28T15:26:44Z",
+      "mergedAt": "2021-06-28T15:26:44Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "8ef924171ddcfe9f3ee97629ab34b5e8a301ad48"
+      },
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@cjpatton since this will go into the next version of the draft, can we bump everything to the next version here?",
+          "createdAt": "2021-06-28T13:51:08Z",
+          "updatedAt": "2021-06-28T13:51:08Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Done.",
+          "createdAt": "2021-06-28T15:07:06Z",
+          "updatedAt": "2021-06-28T15:07:06Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Thanks!",
+          "createdAt": "2021-06-28T15:26:41Z",
+          "updatedAt": "2021-06-28T15:26:41Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkwMDIzODMw",
+          "commit": {
+            "abbreviatedOid": "6115ee6"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-22T21:40:35Z",
+          "updatedAt": "2021-06-22T21:40:35Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkyMjQ0Nzk2",
+          "commit": {
+            "abbreviatedOid": "6115ee6"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-24T21:34:20Z",
+          "updatedAt": "2021-06-24T21:34:20Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk0MDk1Njc4",
+          "commit": {
+            "abbreviatedOid": "88d4aec"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-28T15:26:36Z",
+          "updatedAt": "2021-06-28T15:26:36Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 465,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njc2NTczOTYx",
+      "title": "Fix up the backend server HRR text slightly.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/465",
+      "state": "MERGED",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The requirement to check the ClientHello for an inner ClientECH doesn't\r\nmake sense because the entire section is already conditioned by\r\nobserving an inner ClientECH. Also clarify that the client-facing vs.\r\nbackend server dispatch happens at the initial ClientHello. Switching\r\nroles mid-connection will not work very well.",
+      "createdAt": "2021-06-23T19:57:17Z",
+      "updatedAt": "2021-06-28T18:41:01Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "hrr-backend",
+      "headRefOid": "aaccc9f59170a34ef27104be47b5468194e45c6c",
+      "closedAt": "2021-06-28T18:41:01Z",
+      "mergedAt": "2021-06-28T18:41:01Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "9a74f5af39ac5813260cecbe523d6cad88288ba0"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkyMjI4NzM3",
+          "commit": {
+            "abbreviatedOid": "aaccc9f"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-24T21:09:19Z",
+          "updatedAt": "2021-06-24T21:09:19Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkyMzMyMDgy",
+          "commit": {
+            "abbreviatedOid": "aaccc9f"
+          },
+          "author": "cbartle891",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-25T00:27:05Z",
+          "updatedAt": "2021-06-25T00:27:06Z",
+          "comments": [
+            {
+              "originalPosition": 20,
+              "body": "Why do we even need to mention this here since it has nothing to do with HRR? It's kind of confusing; it makes me wonder if there's a special accept_confirmation value that's used specifically when the server sent an HRR vs. when it didn't.",
+              "createdAt": "2021-06-25T00:27:05Z",
+              "updatedAt": "2021-06-25T00:27:06Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkzOTg1ODg2",
+          "commit": {
+            "abbreviatedOid": "aaccc9f"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-28T13:54:16Z",
+          "updatedAt": "2021-06-28T13:54:16Z",
+          "comments": [
+            {
+              "originalPosition": 20,
+              "body": "> it makes me wonder if there's a special accept_confirmation value that's used specifically when the server sent an HRR vs. when it didn't.\r\n\r\nIsn't this precisely the case now? There are two separate signals: one for ECH acceptance without HRR, and one for ECH acceptance with HRR. ",
+              "createdAt": "2021-06-28T13:54:16Z",
+              "updatedAt": "2021-06-28T13:54:16Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkzOTg2NzQ5",
+          "commit": {
+            "abbreviatedOid": "aaccc9f"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-28T13:55:00Z",
+          "updatedAt": "2021-06-28T13:55:00Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 467,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njc4MTg2ODMw",
+      "title": "Don't require OuterExtensions de-duplication",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/467",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "There are two reasons for this. First, the algorithm in Appendix B for\r\ndecoding the EncodedClientHelloInner doesn't actually enforce this.\r\nSecond, aborting on duplicated extensions is slightly stricter than RFC\r\n8446 requires. It states that \"[t]here MUST NOT be more than one\r\nextension of the same type in a given extension block\", but doesn't\r\nspecify what the receiver does in this case.",
+      "createdAt": "2021-06-25T21:19:26Z",
+      "updatedAt": "2021-06-28T13:50:23Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "outer-ext-dont-dedup",
+      "headRefOid": "273a020a4ab7e14f19d960664d0295632f10e5bb",
+      "closedAt": "2021-06-28T13:50:23Z",
+      "mergedAt": "2021-06-28T13:50:23Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "bd557da9a8c9163570745e6c5059b5af3f6cdf18"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkzOTgxMjc2",
+          "commit": {
+            "abbreviatedOid": "273a020"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-28T13:50:18Z",
+          "updatedAt": "2021-06-28T13:50:18Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 468,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njc4MTg5NTY1",
+      "title": "Editorial changes",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/468",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Just some minor nits I picked up during a slow pass of the spec.",
+      "createdAt": "2021-06-25T21:25:16Z",
+      "updatedAt": "2021-06-28T15:27:33Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "editorial",
+      "headRefOid": "94bb091bd686dca6cf56e1f8552112bbc2f87c5f",
+      "closedAt": "2021-06-28T15:27:33Z",
+      "mergedAt": "2021-06-28T15:27:33Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "ce1098f6fde6438aba3e66a0ca529a1c5e4f7164"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjkzOTc5NDI5",
+          "commit": {
+            "abbreviatedOid": "d7d59ff"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM pending one nit.",
+          "createdAt": "2021-06-28T13:48:40Z",
+          "updatedAt": "2021-06-28T13:48:46Z",
+          "comments": [
+            {
+              "originalPosition": 29,
+              "body": "```suggestion\r\nPer the rules of {{real-ech}}, the server is not permitted to resume a\r\n```\r\n\r\nIt's true that the _client_ can't send a real ticket in the outer CH if it's attempting ECH, but it's the _server_ that actually determines whether or not to resume. ",
+              "createdAt": "2021-06-28T13:48:40Z",
+              "updatedAt": "2021-06-28T13:48:46Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 469,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njc5NDc5MDY2",
+      "title": "Add -12 change log.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/469",
+      "state": "OPEN",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "cc @cjpatton, @ekr, @davidben, @sftcd ",
+      "createdAt": "2021-06-28T23:43:58Z",
+      "updatedAt": "2021-06-28T23:51:12Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "9a74f5af39ac5813260cecbe523d6cad88288ba0",
+      "headRepository": "tlswg/draft-ietf-tls-esni",
+      "headRefName": "caw/change-log-12",
+      "headRefOid": "94bd72049b1a0a02384c572da24c2f913e8984c2",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Happy to park this if we want to land a change for #466, but I don't think that's absolutely needed for a new version. ",
+          "createdAt": "2021-06-28T23:51:12Z",
+          "updatedAt": "2021-06-28T23:51:12Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk0NDc4OTkx",
+          "commit": {
+            "abbreviatedOid": "f1988bf"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-28T23:46:11Z",
+          "updatedAt": "2021-06-28T23:46:11Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "I think we should call out #464 as a bugfix. ECH-11 isn't implementable.",
+              "createdAt": "2021-06-28T23:46:11Z",
+              "updatedAt": "2021-06-28T23:46:11Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk0NDc5ODUy",
+          "commit": {
+            "abbreviatedOid": "94bd720"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-28T23:48:35Z",
+          "updatedAt": "2021-06-28T23:48:36Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Well, not really. It just broke the convention. ",
+              "createdAt": "2021-06-28T23:48:35Z",
+              "updatedAt": "2021-06-28T23:48:36Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk0NDc5ODc5",
+          "commit": {
+            "abbreviatedOid": "94bd720"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-28T23:48:41Z",
+          "updatedAt": "2021-06-28T23:48:41Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Fixed anyway.",
+              "createdAt": "2021-06-28T23:48:41Z",
+              "updatedAt": "2021-06-28T23:48:41Z"
+            }
+          ]
         }
       ]
     }
