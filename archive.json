@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-06-29T00:49:42.514999+00:00",
+  "timestamp": "2021-07-01T00:54:49.997277+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10991,7 +10991,7 @@
       "labels": [],
       "body": "{{client-hrr}} says the client assumes ECH was accepted if the signal matches, but it doesn't say what to do if the signal doesn't match. Is it an error, or do you ignore it?\r\n\r\nRelated to #450, though whether we decide to do that, we need to write down *something* in the meantime.",
       "createdAt": "2021-06-23T20:10:27Z",
-      "updatedAt": "2021-06-28T15:36:01Z",
+      "updatedAt": "2021-06-29T20:56:24Z",
       "closedAt": null,
       "comments": [
         {
@@ -11021,6 +11021,13 @@
           "body": "+1 to assuming rejection, since this is exactly what we do in the non HRR case. @davidben, will you be able to prep a PR for this today? We can include this clarification in -12. (Clarifying that clients should abort if the extension contents are malformed, e.g., of the wrong length, seems fine. But if the signal doesn't match, then I think we should just assume rejection, since that would admit greasing the signal.)",
           "createdAt": "2021-06-28T15:32:51Z",
           "updatedAt": "2021-06-28T15:36:01Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Sorry, was OOO yesterday and today was weekend email catchup. I might have time tomorrow?\r\n\r\nAlright, sounds like everyone else prefers presuming rejection, so presuming rejection it is. :-) I feel weird doing that in advance of thinking about GREASE, but I guess folks want to do that too, so okay.",
+          "createdAt": "2021-06-29T20:56:00Z",
+          "updatedAt": "2021-06-29T20:56:24Z"
         }
       ]
     }
@@ -29338,13 +29345,13 @@
       "labels": [],
       "body": "Addresses #264.",
       "createdAt": "2020-09-30T18:51:06Z",
-      "updatedAt": "2021-06-22T21:26:41Z",
+      "updatedAt": "2021-06-30T21:38:58Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
+      "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "server_side_padding",
-      "headRefOid": "d5115276eefbf87699c1c6039b4a60baa16b0d84",
+      "headRefOid": "f69516342f307b7fa6aaf74f2e13071560336361",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -29391,6 +29398,13 @@
           "body": "Rebased.",
           "createdAt": "2021-06-11T18:00:04Z",
           "updatedAt": "2021-06-11T18:00:04Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Rebased.",
+          "createdAt": "2021-06-30T21:38:58Z",
+          "updatedAt": "2021-06-30T21:38:58Z"
         }
       ],
       "reviews": [
@@ -45066,13 +45080,13 @@
       "labels": [],
       "body": "Addresses #264. (Alternative to #313.)",
       "createdAt": "2021-06-11T21:32:36Z",
-      "updatedAt": "2021-06-22T20:35:11Z",
+      "updatedAt": "2021-06-30T21:37:06Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
+      "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "padding_message",
-      "headRefOid": "2d33fe2f846fd199017522fa6d607555bc162037",
+      "headRefOid": "dbfdbbf8ca09bb0563b57f1893da904a8c8e76b8",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -45147,6 +45161,13 @@
           "body": "Squashed. (@martinthomson, I'm gonna wait on editorial changes until #443 lands.)",
           "createdAt": "2021-06-22T20:35:11Z",
           "updatedAt": "2021-06-22T20:35:11Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Rebased.",
+          "createdAt": "2021-06-30T21:37:06Z",
+          "updatedAt": "2021-06-30T21:37:06Z"
         }
       ],
       "reviews": [
@@ -45696,7 +45717,7 @@
       "labels": [],
       "body": "To be included with #463.\r\n\r\nNote that this is a wire-breaking change that should have landed in draft-11, but didn't.",
       "createdAt": "2021-06-22T21:30:40Z",
-      "updatedAt": "2021-06-28T15:26:44Z",
+      "updatedAt": "2021-06-30T21:14:57Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
@@ -45881,7 +45902,7 @@
       "labels": [],
       "body": "There are two reasons for this. First, the algorithm in Appendix B for\r\ndecoding the EncodedClientHelloInner doesn't actually enforce this.\r\nSecond, aborting on duplicated extensions is slightly stricter than RFC\r\n8446 requires. It states that \"[t]here MUST NOT be more than one\r\nextension of the same type in a given extension block\", but doesn't\r\nspecify what the receiver does in this case.",
       "createdAt": "2021-06-25T21:19:26Z",
-      "updatedAt": "2021-06-28T13:50:23Z",
+      "updatedAt": "2021-06-30T21:15:02Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
@@ -45923,7 +45944,7 @@
       "labels": [],
       "body": "Just some minor nits I picked up during a slow pass of the spec.",
       "createdAt": "2021-06-25T21:25:16Z",
-      "updatedAt": "2021-06-28T15:27:33Z",
+      "updatedAt": "2021-06-30T21:14:50Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "d3227bd57daab88a41b13888ec0cc2e88a85841a",
@@ -45972,7 +45993,7 @@
       "labels": [],
       "body": "cc @cjpatton, @ekr, @davidben, @sftcd ",
       "createdAt": "2021-06-28T23:43:58Z",
-      "updatedAt": "2021-06-28T23:51:12Z",
+      "updatedAt": "2021-06-29T20:56:50Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "9a74f5af39ac5813260cecbe523d6cad88288ba0",
@@ -46050,6 +46071,167 @@
               "body": "Fixed anyway.",
               "createdAt": "2021-06-28T23:48:41Z",
               "updatedAt": "2021-06-28T23:48:41Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk1NDkwNDE2",
+          "commit": {
+            "abbreviatedOid": "94bd720"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-29T20:54:15Z",
+          "updatedAt": "2021-06-29T20:54:16Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Well, it was a convention break along with an incompatibility with ECH-10. So I guess it's implementable, but you don't want to implement it the way it was written. :-)",
+              "createdAt": "2021-06-29T20:54:16Z",
+              "updatedAt": "2021-06-29T20:54:16Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk1NDkyNDc5",
+          "commit": {
+            "abbreviatedOid": "94bd720"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "LGTM, though I think a fix for #466 would be prudent since it's currently ambiguous.",
+          "createdAt": "2021-06-29T20:56:50Z",
+          "updatedAt": "2021-06-29T20:56:50Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 470,
+      "id": "MDExOlB1bGxSZXF1ZXN0NjgxMjQ5MTYy",
+      "title": "Clarify client behavior when HRR acceptance signal is malformed",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/470",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #466. I left an OPEN ISSUE about possibly changing the client behavior here depending on how we solve #450.",
+      "createdAt": "2021-06-30T21:32:02Z",
+      "updatedAt": "2021-06-30T22:37:25Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "hrr-malformed",
+      "headRefOid": "e8051123ccf4e0f5bde68e8194cf7a514dff0c29",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "cc/ @davidben, @cbartle891, @chris-wood ",
+          "createdAt": "2021-06-30T21:32:28Z",
+          "updatedAt": "2021-06-30T21:32:28Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk2NjU2MjYz",
+          "commit": {
+            "abbreviatedOid": "07395f6"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-06-30T22:05:01Z",
+          "updatedAt": "2021-06-30T22:05:01Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk2NjYxNzE4",
+          "commit": {
+            "abbreviatedOid": "07395f6"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-30T22:14:39Z",
+          "updatedAt": "2021-06-30T22:14:39Z",
+          "comments": [
+            {
+              "originalPosition": 9,
+              "body": "What if the payload is present but malformed, e.g., 1 byte long? Would we want the client to abort then? (Failing early and loudly)",
+              "createdAt": "2021-06-30T22:14:39Z",
+              "updatedAt": "2021-06-30T22:14:39Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk2NjYyMjc1",
+          "commit": {
+            "abbreviatedOid": "07395f6"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-30T22:15:40Z",
+          "updatedAt": "2021-06-30T22:15:40Z",
+          "comments": [
+            {
+              "originalPosition": 9,
+              "body": "A 1-byte *can't* equal `hrr_accept_confirmation`, so the client would presume rejection.",
+              "createdAt": "2021-06-30T22:15:40Z",
+              "updatedAt": "2021-06-30T22:15:40Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk2NjYzNTIy",
+          "commit": {
+            "abbreviatedOid": "07395f6"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-30T22:18:05Z",
+          "updatedAt": "2021-06-30T22:18:06Z",
+          "comments": [
+            {
+              "originalPosition": 9,
+              "body": "Right, but peers typically abort when values are malformed or otherwise incorrect. Presuming rejection in this case seems to break with that pattern. (This would be a server-side bug, so failing seems appropriate here.)",
+              "createdAt": "2021-06-30T22:18:05Z",
+              "updatedAt": "2021-06-30T22:20:07Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk2NjcyOTMw",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-06-30T22:37:24Z",
+          "updatedAt": "2021-06-30T22:37:25Z",
+          "comments": [
+            {
+              "originalPosition": 9,
+              "body": "Offline we agreed that the client should abort if the payload is malformed.",
+              "createdAt": "2021-06-30T22:37:24Z",
+              "updatedAt": "2021-06-30T22:37:25Z"
             }
           ]
         }
