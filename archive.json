@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-07-01T00:54:49.997277+00:00",
+  "timestamp": "2021-07-04T00:53:12.287298+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10718,7 +10718,7 @@
       "labels": [],
       "body": "Currently, we reuse some bytes of SH.random to signal ECH acceptance when HRR does not occur. Based on [discussion within the context of the HRR design team](https://github.com/tlswg/draft-ietf-tls-esni/wiki/HRR-Design-Team), it may be fruitful to reconsider where this signal goes. Should it in a cleartext extension? Note that this was previously discussed in the context of the original [trial decryption issue](https://github.com/tlswg/draft-ietf-tls-esni/issues/274). It may be worth revisiting this signal's placement as it pertains to the longterm viability of HRR. \r\n\r\ncc @sftcd, @ekr, @martinthomson, @davidben, @cjpatton ",
       "createdAt": "2021-06-03T21:01:35Z",
-      "updatedAt": "2021-06-22T14:52:23Z",
+      "updatedAt": "2021-07-02T20:58:50Z",
       "closedAt": null,
       "comments": [
         {
@@ -10741,6 +10741,13 @@
           "body": "I think this is a question we might try to answer in the initial deployment. Something browsers might consider doing is exercise the ECH codepoint in the server's response by triggering HRR in the inner handshake for some fraction of connection attempts. If these handshake fail at a significantly higher rate then other handshakes, then we know we might have a problem.",
           "createdAt": "2021-06-22T14:52:23Z",
           "updatedAt": "2021-06-22T14:52:23Z"
+        },
+        {
+          "author": "ekr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "When I raised this, my reasoning here was about 70% aesthetic and 30% practical. The practical side is that if we always use an extension than it lowers the risk of ossification due to a \"Does SH have an ECH extension\" filtering. In particular, it seems dangerous to have only SH have the SH.Random hack as we may then discover HRR is broken.",
+          "createdAt": "2021-07-02T20:58:50Z",
+          "updatedAt": "2021-07-02T20:58:50Z"
         }
       ]
     },
@@ -10780,7 +10787,7 @@
       "labels": [],
       "body": "With #423 we will send an explicit signal of whether ECH was accepted prior to HRR. The mechanism for this is an ECH extension sent by the backend server that contains a pseudorandom string derived from the inner handshake. We need to decide if/how to grease this extension.",
       "createdAt": "2021-06-07T17:57:48Z",
-      "updatedAt": "2021-06-24T22:09:16Z",
+      "updatedAt": "2021-07-02T20:56:38Z",
       "closedAt": null,
       "comments": [
         {
@@ -10859,6 +10866,13 @@
           "body": "> Presumably for most deployments, \"as usual\" would cover whatever name-based dispatch it's happy to do on ClientHelloOuter.\r\n\r\nAh, right. It's the back-end server then (unless the client-facing server has the name in the CHO, but then you could consider the client-facing server to also be playing the role of a backend server).",
           "createdAt": "2021-06-24T22:09:16Z",
           "updatedAt": "2021-06-24T22:09:16Z"
+        },
+        {
+          "author": "ekr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I thought we had generally agreed that:\r\n\r\n(1) We weren't going to worry about parallel connections\r\n\r\n```\r\n   achieve stronger security where possible.  Minimally, real ECH is\r\n   designed to be indifferentiable from GREASE ECH for passive\r\n   adversaries with following capabilities: 1.  The attacker does not\r\n   know the ECHConfigList used by the server. 1.  The attacker keeps\r\n   per-connection state only.  In particular, it does not track\r\n   endpoints across connections. 1.  ECH and GREASE ECH are designed so\r\n   that the following features do not vary: the code points of\r\n   extensions negotiated in the clear; the length of messages; and the\r\n   values of plaintext alert messages.\r\n```\r\n(2) We probably couldn't really provide HRR greasing that would work against someone willing to introspect into the connection.\r\n\r\nThis reasoning is how we got to the extension. I think if we *are* going to do the extension, we probably should have the client-facing server grease to avoid people just filtering connections with ECH in the HRR. But I don't think it has to be very good given the above threat model.\r\n\r\n",
+          "createdAt": "2021-07-02T20:56:38Z",
+          "updatedAt": "2021-07-02T20:56:38Z"
         }
       ]
     },
@@ -45080,7 +45094,7 @@
       "labels": [],
       "body": "Addresses #264. (Alternative to #313.)",
       "createdAt": "2021-06-11T21:32:36Z",
-      "updatedAt": "2021-06-30T21:37:06Z",
+      "updatedAt": "2021-07-02T23:49:08Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
@@ -45168,6 +45182,27 @@
           "body": "Rebased.",
           "createdAt": "2021-06-30T21:37:06Z",
           "updatedAt": "2021-06-30T21:37:06Z"
+        },
+        {
+          "author": "ekr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "While it seems to me that none of the options are ideal, I'm not that enthusiastic about a new message here.\r\n\r\nI appreciate that putting the padding at the record layer adds some API complexity, but it seems modest. I note that that would also match the layering of having the ClientHelloInner padding existing outside the handshake message.\r\n\r\nNote that if it turns out that this is impractical, we can always add a padding message later with a new extension.\r\n",
+          "createdAt": "2021-07-02T22:33:26Z",
+          "updatedAt": "2021-07-02T22:33:26Z"
+        },
+        {
+          "author": "ekr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Sorry about the close. Pushed the wrong button.",
+          "createdAt": "2021-07-02T22:33:41Z",
+          "updatedAt": "2021-07-02T22:33:41Z"
+        },
+        {
+          "author": "sftcd",
+          "authorAssociation": "COLLABORATOR",
+          "body": "\n\nOn 02/07/2021 23:33, ekr wrote:\n> While it seems to me that none of the options are ideal, I'm not that\n> enthusiastic about a new message here.\n> \n> I appreciate that putting the padding at the record layer adds some\n> API complexity, but it seems modest. I note that that would also\n> match the layering of having the ClientHelloInner padding existing\n> outside the handshake message.\n> \n> Note that if it turns out that this is impractical, we can always add\n> a padding message later with a new extension.\n\n+1, I think I could live with the new message but still\nconsider it more work than worthwhile at this point.\n\nS.\n\n> \n> \n",
+          "createdAt": "2021-07-02T23:49:08Z",
+          "updatedAt": "2021-07-02T23:49:08Z"
         }
       ],
       "reviews": [
@@ -45993,13 +46028,13 @@
       "labels": [],
       "body": "cc @cjpatton, @ekr, @davidben, @sftcd ",
       "createdAt": "2021-06-28T23:43:58Z",
-      "updatedAt": "2021-06-29T20:56:50Z",
+      "updatedAt": "2021-07-02T01:58:24Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "9a74f5af39ac5813260cecbe523d6cad88288ba0",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/change-log-12",
-      "headRefOid": "94bd72049b1a0a02384c572da24c2f913e8984c2",
+      "headRefOid": "1b27d54c52bd7f699210b6cba39832994a7e6772",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -46106,6 +46141,19 @@
           "createdAt": "2021-06-29T20:56:50Z",
           "updatedAt": "2021-06-29T20:56:50Z",
           "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk3NzY3ODQ4",
+          "commit": {
+            "abbreviatedOid": "1b27d54"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-07-02T01:58:24Z",
+          "updatedAt": "2021-07-02T01:58:24Z",
+          "comments": []
         }
       ]
     },
@@ -46121,7 +46169,7 @@
       "labels": [],
       "body": "Closes #466. I left an OPEN ISSUE about possibly changing the client behavior here depending on how we solve #450.",
       "createdAt": "2021-06-30T21:32:02Z",
-      "updatedAt": "2021-06-30T22:37:25Z",
+      "updatedAt": "2021-07-02T20:36:23Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
@@ -46139,6 +46187,13 @@
           "body": "cc/ @davidben, @cbartle891, @chris-wood ",
           "createdAt": "2021-06-30T21:32:28Z",
           "updatedAt": "2021-06-30T21:32:28Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "cc @davidben for a quick look before merging.",
+          "createdAt": "2021-07-01T18:40:29Z",
+          "updatedAt": "2021-07-01T18:40:29Z"
         }
       ],
       "reviews": [
@@ -46232,6 +46287,172 @@
               "body": "Offline we agreed that the client should abort if the payload is malformed.",
               "createdAt": "2021-06-30T22:37:24Z",
               "updatedAt": "2021-06-30T22:37:25Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4Mjg4Mzk0",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T15:15:42Z",
+          "updatedAt": "2021-07-02T15:19:08Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "How about we capture this in syntax, as `opaque HelloRetryRequestECH[8]` or whatever? I think syntax errors are already implicitly fatal and come with an alert (`decode_error`). Less special-case bits.\r\n\r\nLooking at RFC8446, we seem to have a couple styles here. Sometimes we just define separate types for each context and link them in prose: `KeyShareClientHello`, `KeyShareHelloRetryRequest`, `KeyShareServerHello`. Sometimes we define one structure with a select:\r\n\r\n```\r\n      struct {\r\n          select (Handshake.msg_type) {\r\n              case new_session_ticket:   uint32 max_early_data_size;\r\n              case client_hello:         Empty;\r\n              case encrypted_extensions: Empty;\r\n          };\r\n      } EarlyDataIndication;\r\n\r\n      struct {\r\n          select (Handshake.msg_type) {\r\n              case client_hello:\r\n                   ProtocolVersion versions<2..254>;\r\n\r\n              case server_hello: /* and HelloRetryRequest */\r\n                   ProtocolVersion selected_version;\r\n          };\r\n      } SupportedVersions;\r\n```\r\n\r\nI guess the latter is a little interesting because, for HelloRetryRequest, `Handshake.msg_type` is still `server_hello`. Maybe that's why we did key shares in prose...\r\n\r\n(Interestingly, our naming scheme for ECH is funny because it doesn't actually tell you the message, only who sends it. We say ServerECH rather than EncryptedExtensionsECH. And I guess KeyShare's naming convention is ECHEncryptedExtensions. Maybe time to rename since the server sends two of them now...)",
+              "createdAt": "2021-07-02T15:15:42Z",
+              "updatedAt": "2021-07-02T15:19:48Z"
+            },
+            {
+              "originalPosition": 34,
+              "body": "If we allow the server to send HRR.ech with invalid value as rejection, does that mean that, by sending GREASE ECH, the client is obligated to handle this case? Do we need some text here? (Like the client checks HRR.ECH syntactically but interprets all values as rejection.)",
+              "createdAt": "2021-07-02T15:19:03Z",
+              "updatedAt": "2021-07-02T15:19:08Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4MjkzMDgz",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T15:21:16Z",
+          "updatedAt": "2021-07-02T15:21:16Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "> I guess the latter is a little interesting because, for HelloRetryRequest, Handshake.msg_type is still server_hello. Maybe that's why we did key shares in prose...\r\n\r\nAh yes, that's exactly why key share doesn't do this. So I guess the single struct with `select` is the convention, but if you need to distinguish SH and HRR, as we do, do it in prose:\r\nhttps://github.com/tlswg/tls13-spec/commit/9a9c3295140bf4880ca031a6512e350da108713b",
+              "createdAt": "2021-07-02T15:21:16Z",
+              "updatedAt": "2021-07-02T15:21:16Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4Mzg3MDU5",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T17:31:22Z",
+          "updatedAt": "2021-07-02T17:31:23Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "Something like this?\r\n```\r\n      struct {\r\n          select (Handshake.msg_type) {\r\n              case server_hello: // Well, HRR, but this isn't a codepoint AFAIK\r\n                   opaque hrr_ech_accept_confirmation [8];\r\n              case encrypted_extensions:\r\n                   ECHConfigList retry_configs;\r\n          };\r\n      } ServerECH;\r\n```",
+              "createdAt": "2021-07-02T17:31:22Z",
+              "updatedAt": "2021-07-02T17:31:23Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4Mzg4MjAw",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T17:33:15Z",
+          "updatedAt": "2021-07-02T17:33:15Z",
+          "comments": [
+            {
+              "originalPosition": 34,
+              "body": "Yeah, I think the client is obligated to handle this case. In particular, it should parse the extension. (Isn't the server obligated to do the same for the GREASE ECH extension?)",
+              "createdAt": "2021-07-02T17:33:15Z",
+              "updatedAt": "2021-07-02T17:33:15Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4NDI1NTE4",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T18:37:50Z",
+          "updatedAt": "2021-07-02T18:37:50Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "Using a mix of the two styles seems a little odd. Normally, when extensions use a `select (Handshake.msg_type)`, we put everything in it, so the ClientHello extension would go here too. Though I suppose we don't have a SH extension so HRR using the SH code point does work. But I was thinking we just go the key_share route and define three structures:\r\n\r\n```\r\n    struct {\r\n       ClientECHType type;\r\n       select (ClientECH.type) {\r\n           case outer:\r\n               HpkeSymmetricCipherSuite cipher_suite;\r\n               uint8 config_id;\r\n               opaque enc<0..2^16-1>;\r\n               opaque payload<1..2^16-1>;\r\n           case inner:\r\n               Empty;\r\n       };\r\n    } ECHClientHello;\r\n\r\n    struct {\r\n       opaque confirmation[8];\r\n    } ECHHelloRetryRequest;\r\n    // Or, equivalently, opaque ECHHelloRetryRequest[8], but the struct might be easier to read.\r\n\r\n    struct {\r\n       ECHConfigList retry_configs;\r\n    } ECHEncryptedExtensions;\r\n```\r\n\r\nRenaming things might be too much churn, I dunno. That's just the convention RFC8446 used for key share.",
+              "createdAt": "2021-07-02T18:37:50Z",
+              "updatedAt": "2021-07-02T18:37:50Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4NDI2NDg4",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T18:39:48Z",
+          "updatedAt": "2021-07-02T18:39:48Z",
+          "comments": [
+            {
+              "originalPosition": 34,
+              "body": "Right. What I'm saying is the server specification doesn't distinguish GREASE ECH from normal ECH that fails to decrypt (and one hopes it cannot!). But the client specification has a big branch between GREASE ECH and normal ECH, so we probably need text here if we want that to work. (And we need a big branch because a GREASE ECH client cannot actually run the steps to compute the confirmation. There's no ClientHelloInner or anything.)",
+              "createdAt": "2021-07-02T18:39:48Z",
+              "updatedAt": "2021-07-02T18:39:48Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4NDI2NzM2",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T18:40:18Z",
+          "updatedAt": "2021-07-02T18:40:18Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "This looks good to me. @chris-wood, what do you think?",
+              "createdAt": "2021-07-02T18:40:18Z",
+              "updatedAt": "2021-07-02T18:40:18Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk4NDg1ODA2",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-02T20:36:23Z",
+          "updatedAt": "2021-07-02T20:36:23Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "Seems reasonable to me!",
+              "createdAt": "2021-07-02T20:36:23Z",
+              "updatedAt": "2021-07-02T20:36:23Z"
             }
           ]
         }
