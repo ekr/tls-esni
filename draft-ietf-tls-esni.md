@@ -275,7 +275,7 @@ use.
 
 maximum_name_length
 : The longest name of a backend server, if known. If not known, this value can
-be set to zero. It is used to compute padding ({{padding}}) and does not
+be set to zero. It is used to compute padding ({{client-padding}}) and does not
 constrain server name lengths. Names may exceed this length if, e.g.,
 the server uses wildcard names or added new names to the anonymity set.
 
@@ -489,8 +489,8 @@ extensions, OuterExtensions, includes those which were removed from
 EncodedClientHelloInner, in the order in which they were removed.
 
 Finally, the client pads the message by setting the `zeros` field to a byte
-string whose contents are all zeros and whose length is the amount of padding
-to add. {{padding}} describes a recommended padding scheme.
+string whose contents are all zeros and whose length is the amount of padding to
+add. {{client-padding}} describes a recommended padding scheme.
 
 The client-facing server computes ClientHelloInner by reversing this process.
 First it parses EncodedClientHelloInner, interpreting all bytes after
@@ -543,6 +543,41 @@ transformations.
 The decompression process in {{encoding-inner}} forbids
 "encrypted_client_hello" in OuterExtensions. This ensures the unauthenticated
 portion of ClientHelloOuter is not incorporated into ClientHelloInner.
+
+# Handshake Padding {#handshake-padding}
+
+Encrypting the ClientHelloInner may not be sufficient to protect sensitive
+handshake parameters against traffic analysis. In particular, the length of the
+ClientHelloInner, or the length of the backend server's response, may leak
+information about these parameters. The client and backend server can use the
+"handshake_padding" extension in order to mitigate this leakage.
+
+A new extension type is defined, which the client MAY include in its
+ClientHello.
+
+~~~
+    enum {
+       handshake_padding(0xfd01), (65535)
+    } ExtensionType;
+~~~
+
+When solicited by the client, the server MAY reply by including the extension in
+its EncryptedExtensions message.
+
+The payload of the "handshake_padding" extension is any number of zero bytes.
+The extension's recipient MAY verify the payload is correct and abort with an
+"illegal_parameter" alert if not.
+
+The number of zero bytes is referred to as the padding length. Note that unlike
+{{?RFC7685}}, the padding length is not encoded by the extension payload itself.
+This is redundant in TLS 1.3 in which the payload is prefixed by its length.
+(See {{RFC8446}}, Section 4.2.)
+
+This mechanism is intended to allow the backend server to protect sensitive
+handshake parameters that would otherwise be leaked by the length of the
+encrypted handshake messages. Implementations must also take care to ensure
+that, when coalescing the handshake messages into a sequence of records, the
+lengths of the records are independent of sensitive handshake parameters.
 
 # Client Behavior {#client-behavior}
 
@@ -696,7 +731,7 @@ connection in the outer handshake. If ECH is rejected and the client-facing
 server replies with a "pre_shared_key" extension in its ServerHello, then the
 client MUST abort the handshake with an "illegal_parameter" alert.
 
-### Recommended Padding Scheme {#padding}
+### Recommended Padding Scheme {#client-padding}
 
 This section describes a deterministic padding mechanism based on the following
 observation: individual extensions can reveal sensitive information through
@@ -707,7 +742,8 @@ client's configuration or may require server input.
 By way of example, clients typically support a small number of application
 profiles. For instance, a browser might support HTTP with ALPN values
 ["http/1.1, "h2"] and WebRTC media with ALPNs ["webrtc", "c-webrtc"]. Clients
-SHOULD pad this extension by rounding up to the total size of the longest ALPN
+SHOULD compute the padding length for the "handshake_padding" extension
+({{handshake-padding}}) by rounding up to the total size of the longest ALPN
 extension across all application profiles. The target padding length of most
 ClientHello extensions can be computed in this way.
 
@@ -730,12 +766,6 @@ Finally, the client SHOULD pad the entire message as follows:
 
 This rounds the length of EncodedClientHelloInner up to a multiple of 32 bytes,
 reducing the set of possible lengths across all clients.
-
-In addition to padding ClientHelloInner, clients and servers will also need to
-pad all other handshake messages that have sensitive-length fields. For example,
-if a client proposes ALPN values in ClientHelloInner, the server-selected value
-will be returned in an EncryptedExtension, so that handshake message also needs
-to be padded using TLS record layer padding.
 
 ### Handling the Server Response {#handle-server-response}
 
@@ -876,7 +906,7 @@ structure available for the server, it SHOULD send a GREASE {{?RFC8701}}
 - Set the `payload` field to a randomly-generated string of L+C bytes, where C
   is the ciphertext expansion of the selected AEAD scheme and L is the size of
   the EncodedClientHelloInner the client would compute when offering ECH, padded
-  according to {{padding}}.
+  according to {{client-padding}}.
 
 When sending a second ClientHello in response to a HelloRetryRequest, the
 client copies the entire "encrypted_client_hello" extension from the first
@@ -1090,6 +1120,46 @@ following string:
 
 In the subsequent ServerHello message, the backend server sends the
 accept_confirmation value as described in {{backend-server}}.
+
+### Recommended Padding Scheme {#backend-server-padding}
+
+When confirming ECH acceptance, the backend server SHOULD reply to the
+"handshake_padding" extension solicited by the client. It is RECOMMENDED that
+the backend server compute the padding length for the "handshake_padding"
+extension in its EncryptedExtensions message ({{handshake-padding}}) based on
+the following values:
+
+1. Its Certificate message.
+1. The "application_layer_protocol_negotiation" extension offered by the client
+   in the ClientHelloInner.
+
+Let certificate_padding_length = max_certificate_length - certificate_length,
+where:
+
+* max_certificate_length is equal to the length of the largest Certificate
+  message that would be sent by any backend server; and
+* certificate_length is the length of the Certificate message selected by
+  the backend server for the current handshake.
+
+Let alpn_padding_length = max_alpn_length - alpn_length, where:
+
+* max_alpn_length is equal to the length of the longest name among the names of
+  application-layer protocols supported by any backend server; and
+* alpn_length is the length of the name of the application-layer protocol
+  selected by the backend server for the current handshake.
+
+The padding length is certificate_padding_length + alpn_padding_length.
+
+Computing max_alpn_length and max_certificate_length requires coordination
+between client-facing server and the set of backend servers for which it accepts
+ECH. When this coordination is not feasible, the following scheme is RECOMMENDED
+instead. [[TODO: Recommend a sensible backup. It would be helpful if we had
+statistics for alpn_length and certificate_length on the Internet today.]]
+
+A note for implementations: in order to compute the padding length correctly, it
+is necessary for the backend server to delay computation of the
+"handshake_padding" extension until after the certificate chain is selected and
+the Certificate message is serialized.
 
 # Compatibility Issues
 
@@ -1458,9 +1528,9 @@ supports encrypting the ALPN extension.
 ## Padding Policy
 
 Variations in the length of the ClientHelloInner ciphertext could leak
-information about the corresponding plaintext. {{padding}} describes a
-RECOMMENDED padding mechanism for clients aimed at reducing potential
-information leakage.
+information about the corresponding plaintext. {{client-padding}} and
+{{backend-server-padding}} describe RECOMMENDED padding mechanisms aimed at
+reducing potential information leakage.
 
 ## Active Attack Mitigations
 
@@ -1628,6 +1698,8 @@ for ExtensionType (defined in {{!RFC8446}}):
    "CH, HRR, EE", and "Recommended" column set to "Yes".
 1. ech_outer_extensions(0xfd00), with the "TLS 1.3" column values set to "",
    and "Recommended" column set to "Yes".
+1. handshake_padding(0xfde01), with "TLS 1.3" column values set to
+   "CH, EE", and "Recommended" column set to "Yes".
 
 ## Update of the TLS Alert Registry {#alerts}
 
