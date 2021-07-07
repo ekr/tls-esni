@@ -126,8 +126,9 @@ Table of Contents
    Appendix B.  Linear-time Outer Extension Processing
    Appendix C.  Acknowledgements
    Appendix D.  Change Log
-     D.1.  Since draft-ietf-tls-esni-10
-     D.2.  Since draft-ietf-tls-esni-09
+     D.1.  Since draft-ietf-tls-esni-11
+     D.2.  Since draft-ietf-tls-esni-10
+     D.3.  Since draft-ietf-tls-esni-09
    Authors' Addresses
 
 1.  Introduction
@@ -2032,7 +2033,19 @@ Appendix D.  Change Log
 
    Issue and pull request numbers are listed with a leading octothorp.
 
-D.1.  Since draft-ietf-tls-esni-10
+D.1.  Since draft-ietf-tls-esni-11
+
+   *  Move ClientHello padding to the encoding (#443)
+
+   *  Align codepoints (#464)
+
+   *  Relax OuterExtensions checks for alignment with RFC8446 (#467)
+
+   *  Clarify HRR acceptance and rejection logic (#470)
+
+   *  Editorial improvements (#468, #465, #462, #461)
+
+D.2.  Since draft-ietf-tls-esni-10
 
    *  Make HRR confirmation and ECH acceptance explicit (#422, #423)
 
@@ -2058,7 +2071,7 @@ D.1.  Since draft-ietf-tls-esni-10
 
    *  Editorial improvements (#428, #432, #439, #445, #458, #455)
 
-D.2.  Since draft-ietf-tls-esni-09
+D.3.  Since draft-ietf-tls-esni-09
 
    *  Finalize HPKE dependency (#390)
 
