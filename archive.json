@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-07-04T00:53:12.287298+00:00",
+  "timestamp": "2021-07-08T00:51:43.816042+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10998,15 +10998,15 @@
       "id": "MDU6SXNzdWU5Mjg2MDA1NjQ=",
       "title": "Client behavior if the HRR signal is wrong",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/466",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "{{client-hrr}} says the client assumes ECH was accepted if the signal matches, but it doesn't say what to do if the signal doesn't match. Is it an error, or do you ignore it?\r\n\r\nRelated to #450, though whether we decide to do that, we need to write down *something* in the meantime.",
       "createdAt": "2021-06-23T20:10:27Z",
-      "updatedAt": "2021-06-29T20:56:24Z",
-      "closedAt": null,
+      "updatedAt": "2021-07-07T19:59:40Z",
+      "closedAt": "2021-07-07T19:59:40Z",
       "comments": [
         {
           "author": "cbartle891",
@@ -45094,7 +45094,7 @@
       "labels": [],
       "body": "Addresses #264. (Alternative to #313.)",
       "createdAt": "2021-06-11T21:32:36Z",
-      "updatedAt": "2021-07-02T23:49:08Z",
+      "updatedAt": "2021-07-06T18:31:01Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
@@ -45203,6 +45203,27 @@
           "body": "\n\nOn 02/07/2021 23:33, ekr wrote:\n> While it seems to me that none of the options are ideal, I'm not that\n> enthusiastic about a new message here.\n> \n> I appreciate that putting the padding at the record layer adds some\n> API complexity, but it seems modest. I note that that would also\n> match the layering of having the ClientHelloInner padding existing\n> outside the handshake message.\n> \n> Note that if it turns out that this is impractical, we can always add\n> a padding message later with a new extension.\n\n+1, I think I could live with the new message but still\nconsider it more work than worthwhile at this point.\n\nS.\n\n> \n> \n",
           "createdAt": "2021-07-02T23:49:08Z",
           "updatedAt": "2021-07-02T23:49:08Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@ekr, @sftcd, see #264 for why record layer pasdding is impractical. An alternative to the padding message is #313, which moves the padding to an extension in EncryptedExtensions.",
+          "createdAt": "2021-07-06T17:34:18Z",
+          "updatedAt": "2021-07-06T17:34:18Z"
+        },
+        {
+          "author": "ekr",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I've read #264. I don't think it's persuasive for the reasons I mentioned above.",
+          "createdAt": "2021-07-06T18:11:59Z",
+          "updatedAt": "2021-07-06T18:11:59Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "+1 to @ekr's suggestion to move this to a separate draft. We don't need to block on it since we have record-layer padding, and we can always add it later. ",
+          "createdAt": "2021-07-06T18:31:01Z",
+          "updatedAt": "2021-07-06T18:31:01Z"
         }
       ],
       "reviews": [
@@ -46021,24 +46042,26 @@
       "id": "MDExOlB1bGxSZXF1ZXN0Njc5NDc5MDY2",
       "title": "Add -12 change log.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/469",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "chris-wood",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "cc @cjpatton, @ekr, @davidben, @sftcd ",
       "createdAt": "2021-06-28T23:43:58Z",
-      "updatedAt": "2021-07-02T01:58:24Z",
+      "updatedAt": "2021-07-07T20:01:11Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "9a74f5af39ac5813260cecbe523d6cad88288ba0",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/change-log-12",
       "headRefOid": "1b27d54c52bd7f699210b6cba39832994a7e6772",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2021-07-07T20:01:11Z",
+      "mergedAt": "2021-07-07T20:01:11Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "57b9e22624f1c7401cec35bb7ffed9ee93bb7041"
+      },
       "comments": [
         {
           "author": "chris-wood",
@@ -46162,24 +46185,26 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NjgxMjQ5MTYy",
       "title": "Clarify client behavior when HRR acceptance signal is malformed",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/470",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #466. I left an OPEN ISSUE about possibly changing the client behavior here depending on how we solve #450.",
       "createdAt": "2021-06-30T21:32:02Z",
-      "updatedAt": "2021-07-02T20:36:23Z",
+      "updatedAt": "2021-07-08T00:39:02Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
+      "baseRefOid": "a39831f33ac8de762328f6fbf9f7f216862c1240",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "hrr-malformed",
-      "headRefOid": "e8051123ccf4e0f5bde68e8194cf7a514dff0c29",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "0135da2a2612b47eb33f47316f4f7f777845532c",
+      "closedAt": "2021-07-07T19:59:40Z",
+      "mergedAt": "2021-07-07T19:59:40Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "d8186c3c03b40ea2313db53c9b6f2009fcda1cc8"
+      },
       "comments": [
         {
           "author": "cjpatton",
@@ -46194,6 +46219,20 @@
           "body": "cc @davidben for a quick look before merging.",
           "createdAt": "2021-07-01T18:40:29Z",
           "updatedAt": "2021-07-01T18:40:29Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Paging @davidben and @martinthomson for a quick look before merging and cutting -12.",
+          "createdAt": "2021-07-06T23:42:18Z",
+          "updatedAt": "2021-07-06T23:42:18Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Squashed and rebased.",
+          "createdAt": "2021-07-07T19:44:42Z",
+          "updatedAt": "2021-07-07T19:44:42Z"
         }
       ],
       "reviews": [
@@ -46455,6 +46494,434 @@
               "updatedAt": "2021-07-02T20:36:23Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwMjEyNDA5",
+          "commit": {
+            "abbreviatedOid": "e805112"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-06T17:29:41Z",
+          "updatedAt": "2021-07-06T17:29:41Z",
+          "comments": [
+            {
+              "originalPosition": 34,
+              "body": "Do you think there needs to be text around this in this PR? I would think it would make sense to address this once we have text for #450.",
+              "createdAt": "2021-07-06T17:29:41Z",
+              "updatedAt": "2021-07-06T17:29:41Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwMjEzMjAw",
+          "commit": {
+            "abbreviatedOid": "ec4545c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-06T17:30:33Z",
+          "updatedAt": "2021-07-06T17:30:34Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "Done.",
+              "createdAt": "2021-07-06T17:30:33Z",
+              "updatedAt": "2021-07-06T17:30:34Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwMjIzNzI4",
+          "commit": {
+            "abbreviatedOid": "ec4545c"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM pending a small comment about GREASE ECH and HRR. (I would be fine with or without text.)",
+          "createdAt": "2021-07-06T17:43:14Z",
+          "updatedAt": "2021-07-06T17:48:22Z",
+          "comments": [
+            {
+              "originalPosition": 43,
+              "body": "```suggestion\r\n       opaque confirmation[8];\r\n```",
+              "createdAt": "2021-07-06T17:43:15Z",
+              "updatedAt": "2021-07-06T17:48:22Z"
+            },
+            {
+              "originalPosition": 18,
+              "body": "```suggestion\r\nhandshake with an \"decode_error\" alert. If the payload length is equal to\r\n```",
+              "createdAt": "2021-07-06T17:45:11Z",
+              "updatedAt": "2021-07-06T17:48:22Z"
+            },
+            {
+              "originalPosition": 34,
+              "body": "It seems somewhat separable. We can just say that, if the client send GREASE ECH, then it should always assume rejection and use CHOuter. ",
+              "createdAt": "2021-07-06T17:47:15Z",
+              "updatedAt": "2021-07-06T17:48:22Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwMjcwMDg2",
+          "commit": {
+            "abbreviatedOid": "fb3df6f"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-06T18:40:52Z",
+          "updatedAt": "2021-07-06T18:40:53Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "(@cjpatton did you accidentally resolve this?)",
+              "createdAt": "2021-07-06T18:40:52Z",
+              "updatedAt": "2021-07-06T18:40:53Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwNDY1NDMz",
+          "commit": {
+            "abbreviatedOid": "4a73647"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-06T23:53:05Z",
+          "updatedAt": "2021-07-06T23:53:50Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "I'm slightly worried that the \"MUST\" here violates extensions guidelines.",
+              "createdAt": "2021-07-06T23:53:05Z",
+              "updatedAt": "2021-07-06T23:53:50Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwNDY3MjIx",
+          "commit": {
+            "abbreviatedOid": "4a73647"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-06T23:57:47Z",
+          "updatedAt": "2021-07-06T23:57:48Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "How is this different from, say, requiring the server to send a key_share extension in SH?",
+              "createdAt": "2021-07-06T23:57:48Z",
+              "updatedAt": "2021-07-06T23:57:48Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwNDY5Njk2",
+          "commit": {
+            "abbreviatedOid": "4a73647"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "Seems fine.",
+          "createdAt": "2021-07-07T00:04:38Z",
+          "updatedAt": "2021-07-07T00:07:38Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "```suggestion\r\ninclude an \"encrypted_client_hello\" extension with the following payload:\r\n```",
+              "createdAt": "2021-07-07T00:04:38Z",
+              "updatedAt": "2021-07-07T00:07:38Z"
+            },
+            {
+              "originalPosition": 44,
+              "body": "Why isn't this in a `select {}` block for the extension?",
+              "createdAt": "2021-07-07T00:05:59Z",
+              "updatedAt": "2021-07-07T00:07:38Z"
+            },
+            {
+              "originalPosition": 10,
+              "body": "Does this field need to be explicit?  Empty/not is a pretty good discriminator.",
+              "createdAt": "2021-07-07T00:07:31Z",
+              "updatedAt": "2021-07-07T00:07:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwNDg1MjA4",
+          "commit": {
+            "abbreviatedOid": "7d32720"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-07T00:50:54Z",
+          "updatedAt": "2021-07-07T00:50:54Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "Not any different, I don't think.",
+              "createdAt": "2021-07-07T00:50:54Z",
+              "updatedAt": "2021-07-07T00:50:54Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwNDg2MTky",
+          "commit": {
+            "abbreviatedOid": "7d32720"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-07T00:53:53Z",
+          "updatedAt": "2021-07-07T00:59:40Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "[We had a thread on this, but I accidentally resolve it and I can no longer find it. So ist das Leben.] We're following the precedent set by the \"key_share\" extension https://datatracker.ietf.org/doc/html/rfc8446#section-4.2.8. ",
+              "createdAt": "2021-07-07T00:53:53Z",
+              "updatedAt": "2021-07-07T00:59:40Z"
+            },
+            {
+              "originalPosition": 10,
+              "body": "This was a change made in https://github.com/tlswg/draft-ietf-tls-esni/pull/422. The reasoning is that 8446 requires extensions to be solicited by the client, meaning in order for there to be an ECH extension in HRR, there must be an ECH extension in CHInner.",
+              "createdAt": "2021-07-07T00:59:34Z",
+              "updatedAt": "2021-07-07T00:59:40Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwNDk0Nzc1",
+          "commit": {
+            "abbreviatedOid": "7d32720"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-07T01:17:39Z",
+          "updatedAt": "2021-07-07T01:17:40Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "Yes, but the extension can be empty and achieve the same end.",
+              "createdAt": "2021-07-07T01:17:39Z",
+              "updatedAt": "2021-07-07T01:17:40Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwNDk0ODcw",
+          "commit": {
+            "abbreviatedOid": "7d32720"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-07T01:17:54Z",
+          "updatedAt": "2021-07-07T01:17:54Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "Just noticed:\r\n\r\n```suggestion\r\nthe `inner` variant and the server responds with HelloRetryRequest, it MUST\r\n```",
+              "createdAt": "2021-07-07T01:17:54Z",
+              "updatedAt": "2021-07-07T01:17:54Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAxMTkyMzkw",
+          "commit": {
+            "abbreviatedOid": "4b65646"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-07T16:03:54Z",
+          "updatedAt": "2021-07-07T16:03:55Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "Yeah, whether or not we need the octet indicator was raised in a separate PR. I suggest we move this off to a separate issue if we want to change it. ",
+              "createdAt": "2021-07-07T16:03:55Z",
+              "updatedAt": "2021-07-07T16:03:55Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAxNDAxMDE3",
+          "commit": {
+            "abbreviatedOid": "0135da2"
+          },
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-07T20:05:08Z",
+          "updatedAt": "2021-07-07T20:05:08Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "Agreed that empty or not is a fine discriminator, though I'm not sure how to encode that cleanly in the TLS presentation language.",
+              "createdAt": "2021-07-07T20:05:08Z",
+              "updatedAt": "2021-07-07T20:05:08Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAxNTQ5NDA0",
+          "commit": {
+            "abbreviatedOid": "0135da2"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2021-07-08T00:39:02Z",
+          "updatedAt": "2021-07-08T00:39:02Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "We switch on external variables in other contexts.  Continuing to think of the presentation language as a formal grammar is probably not helpful..",
+              "createdAt": "2021-07-08T00:39:02Z",
+              "updatedAt": "2021-07-08T00:39:02Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 471,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njg0MDI0MzEw",
+      "title": "Missing punctuation in  draft-ietf-tls-esni.md",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/471",
+      "state": "MERGED",
+      "author": "D-Sinus",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Missing Punctuation\r\nAt section 8. Compatibility Issues",
+      "createdAt": "2021-07-06T03:03:13Z",
+      "updatedAt": "2021-07-06T18:27:27Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
+      "headRepository": "D-Sinus/draft-ietf-tls-esni",
+      "headRefName": "master",
+      "headRefOid": "8509077d183ad9a0820c9286768128820f33125c",
+      "closedAt": "2021-07-06T18:27:27Z",
+      "mergedAt": "2021-07-06T18:27:27Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "a39831f33ac8de762328f6fbf9f7f216862c1240"
+      },
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Thanks!",
+          "createdAt": "2021-07-06T18:24:54Z",
+          "updatedAt": "2021-07-06T18:24:54Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3Njk5NTE2NjIw",
+          "commit": {
+            "abbreviatedOid": "8509077"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-07-06T04:00:08Z",
+          "updatedAt": "2021-07-06T04:00:08Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwMjEzNjM2",
+          "commit": {
+            "abbreviatedOid": "8509077"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-07-06T17:31:07Z",
+          "updatedAt": "2021-07-06T17:31:07Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAwMjU3MjIz",
+          "commit": {
+            "abbreviatedOid": "8509077"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-07-06T18:24:49Z",
+          "updatedAt": "2021-07-06T18:24:49Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 472,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njg1NDcxMjE4",
+      "title": "Editorial",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/472",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Based on #470 (merge that first).",
+      "createdAt": "2021-07-07T19:58:17Z",
+      "updatedAt": "2021-07-07T20:00:47Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "a39831f33ac8de762328f6fbf9f7f216862c1240",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "editorial",
+      "headRefOid": "8a129e2ef6a68e1f5b8adf013da7a4d55e35c351",
+      "closedAt": "2021-07-07T20:00:47Z",
+      "mergedAt": "2021-07-07T20:00:47Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "be42f849217b4deabb5bff2a8a30b447f7ff8787"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzAxMzk3NDUy",
+          "commit": {
+            "abbreviatedOid": "8a129e2"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2021-07-07T20:00:42Z",
+          "updatedAt": "2021-07-07T20:00:42Z",
+          "comments": []
         }
       ]
     }
