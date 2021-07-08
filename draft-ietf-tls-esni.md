@@ -275,7 +275,7 @@ use.
 
 maximum_name_length
 : The longest name of a backend server, if known. If not known, this value can
-be set to zero. It is used to compute padding ({{padding}}) and does not
+be set to zero. It is used to compute padding ({{client-padding}}) and does not
 constrain server name lengths. Names may exceed this length if, e.g.,
 the server uses wildcard names or added new names to the anonymity set.
 
@@ -490,7 +490,7 @@ EncodedClientHelloInner, in the order in which they were removed.
 
 Finally, the client pads the message by setting the `zeros` field to a byte
 string whose contents are all zeros and whose length is the amount of padding
-to add. {{padding}} describes a recommended padding scheme.
+to add. {{client-padding}} describes a recommended padding scheme.
 
 The client-facing server computes ClientHelloInner by reversing this process.
 First it parses EncodedClientHelloInner, interpreting all bytes after
@@ -543,6 +543,57 @@ transformations.
 The decompression process in {{encoding-inner}} forbids
 "encrypted_client_hello" in OuterExtensions. This ensures the unauthenticated
 portion of ClientHelloOuter is not incorporated into ClientHelloInner.
+
+# Handshake Padding {#handshake-padding}
+
+Encrypting the ClientHelloInner is usually not enough to protect sensitive
+handshake parameters against traffic analysis. In particular, the length of the
+ciphertext, or the length of any encrypted handshake message that follows it,
+may also leak information about these parameters. To mitigate this issue for
+ClientHelloInner, the client implements the padding scheme specified in [[TODO:
+Point to the new padding mechanism introduced by PR#443]]. This leakage is
+addressed in the remainder of the handshake using the padding mechanism
+described here.
+
+Handshake padding is applied by both the client and backend server in case of
+ECH acceptance. The client determines if ECH was accepted using the procedure
+specified in {{handle-server-response}}. The backend server determines if ECH
+was accepted using the procedure specified in {{backend-server}}.
+
+A new handshake message is defined, which, in case of ECH acceptance, is sent by
+both the client and backend server immediately before the Finished message.
+
+~~~~
+    enum {
+        padding(16),
+    } HandshakeType;
+
+    struct {
+        uint8 zeros[length_of_padding];
+    } Padding;
+~~~~
+
+[[TODO: Address IANA considerations for new codepoint.]]
+
+`zeros` consists of any number of zero bytes. Upon receipt of a Padding message,
+a host MAY verify that the payload is correct (i.e., that it consists of all
+zeros) and abort with "illegal_parameter" if not. Each Padding message is
+incorporated into the handshake transcript just like any other handshake
+message.
+
+The Padding message MUST be sent by the client and backend server in case of ECH
+acceptance and it MUST immediately precede the Finished message. If a Padding
+message is received out-of-order, or it was received without ECH being accepted,
+then the receiver MUST treat it as an unexpected message.
+
+This mechanism is intended to allow the client and backend server to protect
+sensitive handshake parameters that would otherwise be leaked by the length of
+the encrypted handshake messages. Implementations must also take care to ensure
+that, when coalescing the handshake messages into a sequence of records, the
+lengths of the records are independent of the lengths of the messages.
+
+The length of the padding is determined by the sender. Recommendations are
+provided in {{client-padding}} and {{backend-server-padding}}.
 
 # Client Behavior {#client-behavior}
 
@@ -696,7 +747,7 @@ connection in the outer handshake. If ECH is rejected and the client-facing
 server replies with a "pre_shared_key" extension in its ServerHello, then the
 client MUST abort the handshake with an "illegal_parameter" alert.
 
-### Recommended Padding Scheme {#padding}
+### Recommended Padding Scheme {#client-padding}
 
 This section describes a deterministic padding mechanism based on the following
 observation: individual extensions can reveal sensitive information through
@@ -731,11 +782,8 @@ Finally, the client SHOULD pad the entire message as follows:
 This rounds the length of EncodedClientHelloInner up to a multiple of 32 bytes,
 reducing the set of possible lengths across all clients.
 
-In addition to padding ClientHelloInner, clients and servers will also need to
-pad all other handshake messages that have sensitive-length fields. For example,
-if a client proposes ALPN values in ClientHelloInner, the server-selected value
-will be returned in an EncryptedExtension, so that handshake message also needs
-to be padded using TLS record layer padding.
+[[TODO: Recommend how clients should compute the length of the Padding
+message.j]]
 
 ### Handling the Server Response {#handle-server-response}
 
@@ -876,7 +924,7 @@ structure available for the server, it SHOULD send a GREASE {{?RFC8701}}
 - Set the `payload` field to a randomly-generated string of L+C bytes, where C
   is the ciphertext expansion of the selected AEAD scheme and L is the size of
   the EncodedClientHelloInner the client would compute when offering ECH, padded
-  according to {{padding}}.
+  according to {{client-padding}}.
 
 When sending a second ClientHello in response to a HelloRetryRequest, the
 client copies the entire "encrypted_client_hello" extension from the first
@@ -1036,9 +1084,9 @@ server to include any information it requires to process the second ClientHello.
 ## Backend Server {#backend-server}
 
 Upon receipt of an "encrypted_client_hello" extension of type `inner` in a
-ClientHello, if the backend server negotiates TLS 1.3 or higher, then it MUST
-confirm ECH acceptance to the client by computing its ServerHello as described
-here.
+ClientHello, if the backend server negotiates TLS 1.3 or higher, then it
+determines that ECH was accepted by the client-facing server. It MUST confirm
+ECH acceptance to the client by computing its ServerHello as described here.
 
 The backend server embeds in ServerHello.random a string derived from the inner
 handshake. It begins by computing its ServerHello as usual, except the last 8
@@ -1090,6 +1138,38 @@ following string:
 
 In the subsequent ServerHello message, the backend server sends the
 accept_confirmation value as described in {{backend-server}}.
+
+### Recommended Padding Scheme {#backend-server-padding}
+
+It is RECOMMENDED that the backend server computes the length of the Padding
+message (see {{handshake-padding}}) based on the following values:
+
+1. Its Certificate message.
+1. The "application_layer_protocol_negotiation" extension offered by the client
+   in the ClientHelloInner.
+
+Let certificate_padding_length = max_certificate_length - certificate_length,
+where:
+
+* max_certificate_length is equal to the length of the largest Certificate
+  message that would be sent by any backend server; and
+* certificate_length is the length of the Certificate message selected by
+  the backend server for the current handshake.
+
+Let alpn_padding_length = max_alpn_length - alpn_length, where:
+
+* max_alpn_length is equal to the length of the longest name among the names of
+  application-layer protocols supported by any backend server; and
+* alpn_length is the length of the name of the application-layer protocol
+  selected by the backend server for the current handshake.
+
+The padding length is certificate_padding_length + alpn_padding_length.
+
+Computing max_alpn_length and max_certificate_length requires coordination
+between client-facing server and the set of backend servers for which it accepts
+ECH. When this coordination is not feasible, the following scheme is RECOMMENDED
+instead. [[TODO: Recommend a sensible backup. It would be helpful if we had
+statistics for alpn_length and certificate_length on the Internet today.]]
 
 # Compatibility Issues
 
@@ -1458,9 +1538,9 @@ supports encrypting the ALPN extension.
 ## Padding Policy
 
 Variations in the length of the ClientHelloInner ciphertext could leak
-information about the corresponding plaintext. {{padding}} describes a
-RECOMMENDED padding mechanism for clients aimed at reducing potential
-information leakage.
+information about the corresponding plaintext. {{client-padding}} and
+{{backend-server-padding}} describe RECOMMENDED padding mechanisms aimed at
+reducing potential information leakage.
 
 ## Active Attack Mitigations
 
