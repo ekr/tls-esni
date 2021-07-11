@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-07-08T00:51:43.816042+00:00",
+  "timestamp": "2021-07-11T00:57:29.516427+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -45094,7 +45094,7 @@
       "labels": [],
       "body": "Addresses #264. (Alternative to #313.)",
       "createdAt": "2021-06-11T21:32:36Z",
-      "updatedAt": "2021-07-06T18:31:01Z",
+      "updatedAt": "2021-07-08T14:47:10Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "29b11353f3de0b21134eb820e537e30c466a7e69",
@@ -45224,6 +45224,13 @@
           "body": "+1 to @ekr's suggestion to move this to a separate draft. We don't need to block on it since we have record-layer padding, and we can always add it later. ",
           "createdAt": "2021-07-06T18:31:01Z",
           "updatedAt": "2021-07-06T18:31:01Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "A separate draft means that QUIC implementations of ECH need to handle cases where the client does and doesn't support this padding mechanism. That means a QUIC ECH deployment cannot rely on the preferred padding mechanism.\r\n\r\nThe record-level padding is more than just an API issue. QUIC's record layer is not a reliable transport. In order to properly hide lengths, you would need to handle retransmits as if the message were longer. That means padding needs to be integrated with retransmission logic, yet it is not sequenced like CRYPTO frames are. This gets extra fun if TLS believes it wants padding greater than a packet. (Consider, especially, whether an attacker can probe this length by manipulating which packets you see. The receiver doesn't know to block on an all-padding packet.) In contrast, something like this PR is embedded into the byte stream and we get the correct behavior for free.\r\n\r\nThe API issue has also only gotten worse over time, now that QUIC has been standardized and implementations treat their APIs as more and more stable. Indeed all this started because I went to get the needed support into QUIC APIs and implementation ahead of time. The overwhelming feedback I got from the QUIC side was that this was unreasonable, and the TLS WG agreed (https://github.com/tlswg/draft-ietf-tls-esni/issues/264#issuecomment-686645194). As noted in #264, HTTP/3 does something similar, and introduces a [reliable padding scheme](https://quicwg.org/base-drafts/draft-ietf-quic-http.html#name-padding-and-traffic-analysi), separate from the transport's unreliable one.\r\n\r\n> I note that that would also match the layering of having the ClientHelloInner padding existing outside the handshake message.\r\n\r\nNot all places outside the handshake message are equal. The EncodedClientHelloInner padding doesn't have any of the above issues because its bytes are ordered. It also doesn't cross a protocol boundary. Indeed, this PR also meets this analogy by being outside the messages that we are trying to pad. That analogy mostly disqualifies sticking the padding into EncryptedExtensions, since that's deeply tied with the rest of message generation.\r\n\r\nIt *is* inside the transcript, but @martinthomson reported that'd be easier for NSS. An earlier incarnation of the Padding message idea was perhaps even closer to this analogy by mirroring ChangeCipherSpec: receiver ignores it and never passes it up to the handshake, but it's still sequenced with the other messages. (And, given how DTLS integrates retransmission and handshake state machine, integrating it into the handshake is probably indeed easier to reason about. Though I think sequence numbers are probably sufficient? DTLS, like QUIC, would need to integrate padding with retransmission.)\r\n\r\nIt also matches what we'd likely do in QUIC, had we decided earlier to outsource this kind of padding. To integrate it into the CRYPTO stream, we'd probably divide the CRYPTO stream into _ordered_ data and padding chunks. Well, the stream is already divided into chunks (messages), so the natural answer is to use that layer. That's a Padding message.",
+          "createdAt": "2021-07-08T14:44:28Z",
+          "updatedAt": "2021-07-08T14:47:10Z"
         }
       ],
       "reviews": [
