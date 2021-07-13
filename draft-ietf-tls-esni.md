@@ -878,12 +878,13 @@ structure available for the server, it SHOULD send a GREASE {{?RFC8701}}
   the EncodedClientHelloInner the client would compute when offering ECH, padded
   according to {{padding}}.
 
-When sending a second ClientHello in response to a HelloRetryRequest, the
-client copies the entire "encrypted_client_hello" extension from the first
-ClientHello.
-
-[[OPEN ISSUE: The above doesn't match HRR handling for either ECH acceptance or
-rejection. See issue https://github.com/tlswg/draft-ietf-tls-esni/issues/358.]]
+When sending a second ClientHello in response to a HelloRetryRequest, the client
+copies the entire "encrypted_client_hello" extension from the first ClientHello.
+The identical value will reveal to an observer that the value of
+"encrypted_client_hello" was fake, but this only occurs if there is a
+HelloRetryRequest.  A client MAY generate a new value, however updating the
+value of the extension is known to cause compatibility issues with some deployed
+implementations.
 
 If the server sends an "encrypted_client_hello" extension, the client MUST check
 the extension syntactically and abort the connection with a "decode_error" alert
