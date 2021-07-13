@@ -745,9 +745,10 @@ response, the client's first step is to determine which value was used.
 
 If the server replied with a HelloRetryRequest, then the client proceeds as
 described in {{client-hrr}}. Otherwise, if the server replied with a
-ServerHello, then the client checks if the last 8 bytes of `ServerHello.random`
-are equal to `accept_confirmation` as defined in {{backend-server}}. If so, then
-it presumes acceptance. Otherwise, the client presumes rejection.
+ServerHello, then the client checks if the "encrypted_client_hello" extension
+is present and that its payload is equal to `accept_confirmation` as defined
+in {{backend-server}}. If so, then it presumes acceptance. Otherwise, the
+client presumes rejection.
 
 #### Accepted ECH
 
@@ -1037,16 +1038,22 @@ server to include any information it requires to process the second ClientHello.
 
 Upon receipt of an "encrypted_client_hello" extension of type `inner` in a
 ClientHello, if the backend server negotiates TLS 1.3 or higher, then it MUST
-confirm ECH acceptance to the client by computing its ServerHello as described
-here.
+confirm ECH acceptance to the client via the "encrypted_client_hello" extension
+in its ServerHello. Specifically, the backend server includes an
+"encrypted_client_hello" extension with the following payload:
 
-The backend server embeds in ServerHello.random a string derived from the inner
-handshake. It begins by computing its ServerHello as usual, except the last 8
-bytes of ServerHello.random are set to zero. It then computes the transcript
-hash for ClientHelloInner up to and including the modified ServerHello, as
-described in {{RFC8446, Section 4.4.1}}. Let transcript_ech_conf denote the
-output. Finally, the backend server overwrites the last 8 bytes of the
-ServerHello.random with the following string:
+~~~
+    struct {
+       opaque confirmation[8];
+    } ECHServerHello;
+~~~
+
+The value of ECHServerHello.confirmation is set to `accept_confirmation`, which
+is computed as follows. First, the server begins by computing its ServerHello
+as usual. It then computes the transcript hash for ClientHelloInner up to and
+including the modified ServerHello, as described in {{RFC8446, Section 4.4.1}}.
+Let transcript_ech_conf denote the output. Finally, the backend server computes
+`accept_confirmation` as follows:
 
 ~~~
    accept_confirmation = HKDF-Expand-Label(
@@ -1059,10 +1066,6 @@ ServerHello.random with the following string:
 where HKDF-Expand-Label is defined in {{RFC8446, Section 7.1}}, "0" indicates a
 string of Hash.length bytes set to zero, and Hash is the hash function used to
 compute the transcript hash.
-
-The backend server MUST NOT perform this operation if it negotiated TLS 1.2 or
-below. Note that doing so would overwrite the downgrade signal for TLS 1.3 (see
-{{RFC8446, Section 4.1.3}}).
 
 ### Sending HelloRetryRequest {#backend-server-hrr}
 
@@ -1625,7 +1628,7 @@ IANA is requested to create the following three entries in the existing registry
 for ExtensionType (defined in {{!RFC8446}}):
 
 1. encrypted_client_hello(0xfe0c), with "TLS 1.3" column values set to
-   "CH, HRR, EE", and "Recommended" column set to "Yes".
+   "CH, SH, HRR, EE", and "Recommended" column set to "Yes".
 1. ech_outer_extensions(0xfd00), with the "TLS 1.3" column values set to "",
    and "Recommended" column set to "Yes".
 
