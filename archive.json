@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2021-07-11T00:57:29.516427+00:00",
+  "timestamp": "2021-07-15T00:54:01.209107+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -10718,7 +10718,7 @@
       "labels": [],
       "body": "Currently, we reuse some bytes of SH.random to signal ECH acceptance when HRR does not occur. Based on [discussion within the context of the HRR design team](https://github.com/tlswg/draft-ietf-tls-esni/wiki/HRR-Design-Team), it may be fruitful to reconsider where this signal goes. Should it in a cleartext extension? Note that this was previously discussed in the context of the original [trial decryption issue](https://github.com/tlswg/draft-ietf-tls-esni/issues/274). It may be worth revisiting this signal's placement as it pertains to the longterm viability of HRR. \r\n\r\ncc @sftcd, @ekr, @martinthomson, @davidben, @cjpatton ",
       "createdAt": "2021-06-03T21:01:35Z",
-      "updatedAt": "2021-07-02T20:58:50Z",
+      "updatedAt": "2021-07-14T00:37:54Z",
       "closedAt": null,
       "comments": [
         {
@@ -10748,6 +10748,20 @@
           "body": "When I raised this, my reasoning here was about 70% aesthetic and 30% practical. The practical side is that if we always use an extension than it lowers the risk of ossification due to a \"Does SH have an ECH extension\" filtering. In particular, it seems dangerous to have only SH have the SH.Random hack as we may then discover HRR is broken.",
           "createdAt": "2021-07-02T20:58:50Z",
           "updatedAt": "2021-07-02T20:58:50Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I don't think we should make this change. I don't buy it will decrease the likelihood of issues with HRR. Rather, it seems it will increase the likelihood of issues with ECH as a whole.\r\n\r\nThere are already a lot of TLS 1.3 servers out there, and none of them send ECH extensions in SH. While those servers can and perhaps will eventually be updated, compatibility for _particular_[*], defined extensions is an early stage risk. Once an extension is wildly deployed, it's already part of selection pressures. Servers may deploy this greasing mechanism faster than ECH itself, but it's an added risk and inefficiency.\r\n\r\nFor HRR, we're stuck with that risk (and more, because HRR greasing isn't as effective, per https://github.com/tlswg/draft-ietf-tls-esni/issues/450#issuecomment-859667016). For SH, we're not. It doesn't make sense to intentionally take on more risk on SH when it doesn't affect the HRR risk. The incentives are also different here because HRR is so rare.\r\n\r\nIn particular, if we're worried about the ecosystem allowing ECH + SH, but not ECH + HRR, using the same mechanism won't help. SH and HRR extensions do not use the same syntax, so whether an ecosystem tolerates an extension SH has no relation to whether it tolerates it in HRR. We need to counter the fact that HRR is rare, with strategies like https://crbug.com/677254 (which we have not implemented).\r\n\r\nI agree that, aesthetically, the difference is weird. But, I think, practically, the current arrangement is better.\r\n\r\n[*] If we're worried about the ecosystem tolerating unknown extensions, we need something like https://mailarchive.ietf.org/arch/msg/tls/Yl1IUMwkNlJmB9wldkRJy9Mr2Do/",
+          "createdAt": "2021-07-13T17:29:39Z",
+          "updatedAt": "2021-07-13T17:30:26Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I'm with @davidben on this.  I can greatly discount the contribution of aesthetics here, leaving very little reason to change and some good reasons not to change forming the bulk of the balance.",
+          "createdAt": "2021-07-14T00:37:54Z",
+          "updatedAt": "2021-07-14T00:37:54Z"
         }
       ]
     },
@@ -11042,6 +11056,30 @@
           "body": "Sorry, was OOO yesterday and today was weekend email catchup. I might have time tomorrow?\r\n\r\nAlright, sounds like everyone else prefers presuming rejection, so presuming rejection it is. :-) I feel weird doing that in advance of thinking about GREASE, but I guess folks want to do that too, so okay.",
           "createdAt": "2021-06-29T20:56:00Z",
           "updatedAt": "2021-06-29T20:56:24Z"
+        }
+      ]
+    },
+    {
+      "number": 474,
+      "id": "MDU6SXNzdWU5NDQyMzUzMTE=",
+      "title": "Clarification of section 8.2. Middleboxes",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/474",
+      "state": "OPEN",
+      "author": "mosterdt",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Hello,\r\n\r\nWhile reading this specification, section 8.2. states that \"MITM proxies\" are required to remove any extensions they do not understand. \r\n\r\n> A more serious problem is MITM proxies which do not support this\r\n   extension.  [RFC8446], Section 9.3 requires that such proxies remove\r\n   any extensions they do not understand.  The handshake will then\r\n   present a certificate based on the public name, without echoing the\r\n   \"encrypted_client_hello\" extension to the client.\r\n\r\nHowever, looking at RFC 8446 Section 9.3, the first section you encounter on forwarding middleboxes explicitly states the opposite: the middlebox is not allowed to change or modify any parameters in the handshake and subsequent traffic if it doesn't understand some parameter in the ClientHello:\r\n\r\n> A middlebox which forwards ClientHello parameters it does not\r\n   understand MUST NOT process any messages beyond that ClientHello.\r\n   It MUST forward all subsequent traffic unmodified.  Otherwise, it\r\n   may fail to interoperate with newer clients and servers.\r\n\r\nReading further, we find the bullet point the warning in section 8.2 refers to:\r\n\r\n> A middlebox which terminates a TLS connection MUST behave as a\r\n   compliant TLS server (to the original client), including having a\r\n   certificate which the client is willing to accept, and also as a\r\n   compliant TLS client (to the original server), including verifying\r\n   the original server's certificate.  In particular, it MUST\r\n   generate its own ClientHello containing only parameters it\r\n   understands, and it MUST generate a fresh ServerHello random\r\n   value, rather than forwarding the endpoint's value.\r\n\r\nHere, the middlebox isn't so much required to \"remove any extension they do not understand\", but to \"generate its own ClientHello containing only parameters it understands\". After carefully reading over these sections multiple times, I do get the message, but I feel like it could be better worded as not to create confusion. The words \"MITM proxy\" could refer to the forwarding middlebox as well. Changing the wording in, for example, the following way makes the reference more clear in my opinion:\r\n\r\n> A more serious problem is MITM proxies which do not support this\r\nextension.  [RFC8446], Section 9.3 requires that such proxies generate\r\ntheir own ClientHello containing only parameters they understand. The\r\nmiddlebox will then present a certificate based on the public name to\r\nthe client, without echoing the \"encrypted_client_hello\" extension.\r\n\r\nWhat do you think about this?",
+      "createdAt": "2021-07-14T09:34:15Z",
+      "updatedAt": "2021-07-14T14:55:58Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> While reading this specification, section 8.2. states that \"MITM proxies\" are required to remove any extensions they do not understand.\r\n\r\nYes. Or, more accurately, it's required to send a ClientHello only containing things it supports. Whether it choses to base its capabilities on the original ClientHello is its business. Though, of course, there are security implications for either option and more reason why MITM proxies are a terrible idea.\r\n\r\nEither way, if you are a MITM proxy, you are terminating TLS, which means there are two TLS handshakes and, in one of them, you are a client. When acting as a client, you cannot send things you don't understand. Otherwise the server will respond in a way that confuses you.\r\n\r\n> However, looking at RFC 8446 Section 9.3, the first section you encounter on forwarding middleboxes explicitly states the opposite: the middlebox is not allowed to change or modify any parameters in the handshake and subsequent traffic if it doesn't understand some parameter in the ClientHello:\r\n\r\nRFC 8446 does not discuss \"forwarding middleboxes\" at all. That section talks about a \"middlebox which forwards ClientHello parameters _it does not understand_\". Any middlebox that does this cannot terminate TLS in the first place (i.e. not a MITM proxy) because anyone terminating TLS is limited to only sending things it understands.\r\n\r\nRather, this section is talking about non-terminating proxies that attempt to inspect the cleartext portions of TLS anyway. We ran into quite a lot of those in the process of deploying TLS 1.3 and most of them were broken. This text clarifies that TLS promises no continuity of syntax after the ClientHello. A non-terminating proxy gets to assume it can parse the ClientHello and nothing else.\r\n\r\n> The words \"MITM proxy\" could refer to the forwarding middlebox as well. \r\n\r\nSee above. If you're forwarding things you understand, you cannot terminate TLS. The section doesn't apply to what this draft refers to as \"MITM proxy\" at all. (Well, there are some weird things that try to selectively proxy TLS. There are [quite a lot of problems](https://www.imperialviolet.org/2018/03/10/tls13.html) with this approach, but in that case which rules apply depends on which choice the proxy made. Additionally, the proxy cannot violate the forwarding middlebox rule in the process of making the decision. This basically boils down to saying you cannot make your decision based on anything after the ClientHello because, after that point, you cannot parse anything.)\r\n\r\nProbably we should change this draft to match RFC 8446 in terminology and replace \"MITM proxies\" with \"TLS-terminating proxies\".\r\n\r\n> Section 9.3 requires that such proxies generate their own ClientHello containing only parameters they understand.\r\n\r\nYeah, I think that change is a good one.",
+          "createdAt": "2021-07-14T14:55:58Z",
+          "updatedAt": "2021-07-14T14:55:58Z"
         }
       ]
     }
@@ -46931,6 +46969,32 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 473,
+      "id": "MDExOlB1bGxSZXF1ZXN0Njg5MjE1OTgx",
+      "title": "Use the encrypted_client_hello extension to signal acceptance in SH and HRR",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/473",
+      "state": "OPEN",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "PR on standby for #441. (This doesn't GREASE the signal, as that's still somewhat up in the air in #441.)",
+      "createdAt": "2021-07-13T16:26:32Z",
+      "updatedAt": "2021-07-13T16:35:46Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "57b9e22624f1c7401cec35bb7ffed9ee93bb7041",
+      "headRepository": "tlswg/draft-ietf-tls-esni",
+      "headRefName": "caw/unify-signal",
+      "headRefOid": "89fc65e0f971efc6cab1e6fe70283beecc0ca53f",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
