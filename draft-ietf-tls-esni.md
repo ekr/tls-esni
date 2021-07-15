@@ -1128,21 +1128,16 @@ DNS results, if one is provided.
 
 ## Middleboxes
 
-A more serious problem is MITM proxies which do not support this extension.
-{{RFC8446, Section 9.3}} requires that such proxies remove any extensions they
-do not understand. The handshake will then present a certificate based on the
-public name, without echoing the "encrypted_client_hello" extension to the
-client.
+{{RFC8446, Section 9.3}} requires TLS-terminating proxies ignore unknown
+parameters, and generate their own ClientHello containing only parameters they
+understand. Thus, when presenting a certificate to the client or sending a
+ClientHello to the server, the proxy will act as if connecting to the public
+name, without echoing the "encrypted_client_hello" extension.
 
 Depending on whether the client is configured to accept the proxy's certificate
 as authoritative for the public name, this may trigger the retry logic described
 in {{handle-server-response}} or result in a connection failure. A proxy which
 is not authoritative for the public name cannot forge a signal to disable ECH.
-
-A non-conformant MITM proxy which instead forwards the ECH extension,
-substituting its own KeyShare value, will result in the client-facing server
-recognizing the key, but failing to decrypt the SNI. This causes a hard failure.
-Clients SHOULD NOT attempt to repair the connection in this case.
 
 # Compliance Requirements {#compliance}
 
